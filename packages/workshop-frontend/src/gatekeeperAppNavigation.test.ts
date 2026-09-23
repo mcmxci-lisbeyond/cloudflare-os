@@ -174,10 +174,10 @@ describe("workflow URL state", () => {
 });
 
 describe("property URL state", () => {
-  it("normalizes a bounded property workspace deep link", () => {
+  it.each(["guide", "feedback"])("normalizes a bounded %s property workspace deep link", tab => {
     expect(parsePropertyRouteState({
       property: " p0478 ",
-      tab: "guide",
+      tab,
       q: "river",
       service: "property_management",
       region: "Lisbon",
@@ -186,7 +186,7 @@ describe("property URL state", () => {
       token: "private",
     })).toEqual({
       property: "P0478",
-      tab: "guide",
+      tab,
       q: "river",
       service: "property_management",
       region: "Lisbon",
