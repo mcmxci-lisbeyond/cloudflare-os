@@ -174,7 +174,7 @@ describe("workflow URL state", () => {
 });
 
 describe("property URL state", () => {
-  it.each(["guide", "feedback"])("normalizes a bounded %s property workspace deep link", tab => {
+  it.each(["guide", "feedback", "reviews"])("normalizes a bounded %s property workspace deep link", tab => {
     expect(parsePropertyRouteState({
       property: " p0478 ",
       tab,

@@ -176,7 +176,7 @@ describe("SandboxedGatekeeperApp navigation", () => {
     expect(router.state.location.pathname).toBe("/workflows");
   });
 
-  it.each(["guide", "feedback"])("pushes property %s after saving list state and remounts on browser Back", async tab => {
+  it.each(["guide", "feedback", "reviews"])("pushes property %s after saving list state and remounts on browser Back", async tab => {
     const frame = { iframeHtml: "<!doctype html><title>Properties</title>", ui: new RpcStub(new EmptyUi()) } as unknown as GatekeeperUiFrame;
     const rootRoute = createRootRoute({ component: () => <RailConnectionsProvider><SandboxedGatekeeperApp frame={frame} gatekeeperVendorId="lisbeyond" appRoute="properties" /></RailConnectionsProvider> });
     const properties = createRoute({ getParentRoute: () => rootRoute, path: "/properties", validateSearch: parsePropertyRouteState });

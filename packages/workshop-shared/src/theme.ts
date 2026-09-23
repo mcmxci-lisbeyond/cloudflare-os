@@ -25,7 +25,7 @@ export interface GatekeeperChatModelState {
 export interface GatekeeperAppPropertyRouteState {
   property?: string;
   invalidProperty?: string;
-  tab?: "overview" | "guide" | "operations" | "feedback" | "activity";
+  tab?: "overview" | "guide" | "operations" | "feedback" | "reviews" | "activity";
   q?: string;
   service?: "property_management" | "upkeep";
   region?: string;
