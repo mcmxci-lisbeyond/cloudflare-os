@@ -140,7 +140,7 @@ export function parseWorkflowRouteState(value: unknown): WorkflowRouteState {
   return state;
 }
 
-const PROPERTY_TABS = new Set(["overview", "guide", "operations", "feedback", "activity"]);
+const PROPERTY_TABS = new Set(["overview", "guide", "operations", "feedback", "reviews", "activity"]);
 
 /** Exact property identity for a cross-page guide link; navigation conveys no read authority. */
 export function parsePropertyGuideTarget(value: unknown): string {
