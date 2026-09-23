@@ -176,7 +176,7 @@ describe("SandboxedGatekeeperApp navigation", () => {
     expect(router.state.location.pathname).toBe("/workflows");
   });
 
-  it("pushes property detail after saving list state and remounts on browser Back", async () => {
+  it.each(["guide", "feedback"])("pushes property %s after saving list state and remounts on browser Back", async tab => {
     const frame = { iframeHtml: "<!doctype html><title>Properties</title>", ui: new RpcStub(new EmptyUi()) } as unknown as GatekeeperUiFrame;
     const rootRoute = createRootRoute({ component: () => <RailConnectionsProvider><SandboxedGatekeeperApp frame={frame} gatekeeperVendorId="lisbeyond" appRoute="properties" /></RailConnectionsProvider> });
     const properties = createRoute({ getParentRoute: () => rootRoute, path: "/properties", validateSearch: parsePropertyRouteState });
@@ -188,8 +188,8 @@ describe("SandboxedGatekeeperApp navigation", () => {
     window.dispatchEvent(new MessageEvent("message", { data: { type: "handshake" }, origin: "null", source: initialIframe.contentWindow, ports: [port2] }));
     await expect(host.getPropertyRouteState()).resolves.toEqual({ q: "river", region: "Lisbon", scroll: 620 });
 
-    await host.setPropertyRouteState({ property: "p0478", tab: "guide", q: "river", region: "Lisbon", scroll: 620 }, "push");
-    await vi.waitFor(() => expect(router.state.location.search).toEqual({ property: "P0478", tab: "guide", q: "river", region: "Lisbon", scroll: 620 }));
+    await host.setPropertyRouteState({ property: "p0478", tab, q: "river", region: "Lisbon", scroll: 620 }, "push");
+    await vi.waitFor(() => expect(router.state.location.search).toEqual({ property: "P0478", tab, q: "river", region: "Lisbon", scroll: 620 }));
     const detailIframe = container.querySelector("iframe")!;
     expect(detailIframe).not.toBe(initialIframe);
 
