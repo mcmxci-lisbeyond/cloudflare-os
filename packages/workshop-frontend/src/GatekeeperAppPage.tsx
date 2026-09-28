@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GatekeeperUiFrame } from '@gadgets/workshop-shared/gatekeeper'
 import { useAuthenticatedApi } from './AuthContext'
 import SandboxedGatekeeperApp from './SandboxedGatekeeperApp'
@@ -27,7 +27,8 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
   const { authenticatedApi } = useAuthenticatedApi()
   // Wrap the frame in an object: it holds a `ui` RPC stub, and we never want useState's setter to
   // treat a stored value as an updater function.
-  const [state, setState] = useState<{ frame: GatekeeperUiFrame } | null>(null)
+  const generation = useRef(0)
+  const [state, setState] = useState<{ frame: GatekeeperUiFrame; api: typeof authenticatedApi; appId: string; generation: number } | null>(null)
   const [error, setError] = useState<{ detail: string, transient: boolean } | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [automaticRetries, setAutomaticRetries] = useState(0)
@@ -36,6 +37,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
     let cancelled = false
     let acquired: GatekeeperUiFrame | null = null
     setError(null)
+    setState(null)
     authenticatedApi
       .getGatekeeperApp(appId)
       .then((frame) => {
@@ -51,7 +53,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
         }
         acquired = frame
         setAutomaticRetries(0)
-        setState({ frame })
+        setState({ frame, api: authenticatedApi, appId, generation: ++generation.current })
       })
       .catch((err) => {
         console.error('Failed to load gatekeeper app:', err)
@@ -104,7 +106,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
       </div>
     )
   }
-  if (!state) {
+  if (!state || state.api !== authenticatedApi || state.appId !== appId) {
     return <div className="px-4 py-16 text-center text-sm text-kumo-subtle">Loading…</div>
   }
 
@@ -113,7 +115,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
   return (
     <div className="h-full">
       <SandboxedGatekeeperApp
-        key={appRoute ?? 'default'}
+        key={state.generation}
         frame={state.frame}
         gatekeeperVendorId={appId}
         appRoute={appRoute}

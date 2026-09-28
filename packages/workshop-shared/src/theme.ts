@@ -79,3 +79,20 @@ export function applyAccentColor(
     target.setProperty(name, value);
   }
 }
+
+/** Complete host-owned navigation state; revision orders subscription replies and updates. */
+export interface GatekeeperAppNavigation {
+  revision: number;
+  route: string | null;
+  property: GatekeeperAppPropertyRouteState;
+  workflow: {
+    workflow?: string;
+    tab?: "invoices" | "overview" | "activity" | "about";
+    status?: "to_review" | "decided" | "needs_help" | "all" | "awaiting_approval" | "approved" | "handed_off" | "rejected" | "needs_human";
+    item?: string;
+  };
+}
+
+export interface GatekeeperAppNavigationReceiver extends RpcTarget {
+  setNavigation(navigation: GatekeeperAppNavigation): void;
+}

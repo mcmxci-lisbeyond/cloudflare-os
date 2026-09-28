@@ -4,6 +4,8 @@ import { RpcStub, RpcTarget, newMessagePortRpcSession } from 'capnweb'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import type { GatekeeperUiFrame } from '@gadgets/workshop-shared/gatekeeper'
 import type {
+  GatekeeperAppNavigation,
+  GatekeeperAppNavigationReceiver,
   GatekeeperAppPropertyNavigationMode,
   GatekeeperAppPropertyRouteState,
   GatekeeperAppTheme,
@@ -101,13 +103,17 @@ function iframeStyleForOverlay(overlay: OverlayState): CSSProperties {
 // The host capability exposed to the sandboxed app (the gatekeeper's iframe UI) over the MessagePort
 // RPC session. The app uses `ui` to reach the gatekeeper's own capability, which Workshop relays and
 // rate-limits. `setPresenting` stays in Workshop and only grows/restores the iframe's layout.
+const UPDATE_NAVIGATION = Symbol("updateNavigation")
+
 class GatekeeperAppHostImpl extends RpcTarget {
   readonly #ui: RpcStub<RpcTarget>
   readonly #disposeRateLimiter: () => void
   readonly #present: PresentController
   readonly #openTarget: OpenTarget
   readonly #openPrompt: OpenPrompt
-  readonly #appRoute: string | null
+  readonly #appRoute: () => string | null
+  #navigationRevision = 0
+  #navigationReceiver: RpcStub<GatekeeperAppNavigationReceiver> | null = null
   readonly #openAppRoute: OpenAppRoute
   readonly #openPropertyGuide: (pNumber: string) => void
   readonly #guideNavigationEnabled: boolean
@@ -136,7 +142,7 @@ class GatekeeperAppHostImpl extends RpcTarget {
     theme: GatekeeperAppTheme,
     openTarget: OpenTarget,
     openPrompt: OpenPrompt,
-    appRoute: string | null,
+    appRoute: () => string | null,
     openAppRoute: OpenAppRoute,
     resolveWorkspaceTitles: ResolveWorkspaceTitles,
     reportConnections: ReportConnections,
@@ -212,7 +218,34 @@ class GatekeeperAppHostImpl extends RpcTarget {
   }
 
   getAppRoute(): string | null {
-    return this.#appRoute
+    return this.#appRoute()
+  }
+
+  #navigation(): GatekeeperAppNavigation {
+    return { revision: this.#navigationRevision, route: this.getAppRoute(),
+      property: this.getPropertyRouteState(), workflow: this.getWorkflowRouteState() }
+  }
+
+  subscribeNavigation(receiver: RpcStub<GatekeeperAppNavigationReceiver>): GatekeeperAppNavigation {
+    this.#navigationReceiver?.[Symbol.dispose]?.()
+    this.#navigationReceiver = receiver.dup()
+    return this.#navigation()
+  }
+
+  // Symbol methods are host-local and cannot be invoked by the untrusted iframe over RPC.
+  [UPDATE_NAVIGATION]() {
+    ++this.#navigationRevision
+    const receiver = this.#navigationReceiver
+    if (!receiver) return
+    const drop = () => {
+      if (this.#navigationReceiver === receiver) {
+        receiver[Symbol.dispose]?.()
+        this.#navigationReceiver = null
+      }
+    }
+    try {
+      Promise.resolve(receiver.setNavigation(this.#navigation())).catch(drop)
+    } catch { drop() }
   }
 
   openAppRoute(route: unknown): void {
@@ -223,7 +256,7 @@ class GatekeeperAppHostImpl extends RpcTarget {
   openPropertyGuide(value: unknown): void {
     if (!this.#guideNavigationEnabled) throw new TypeError("Guide navigation is unavailable here.")
     const pNumber = parsePropertyGuideTarget(value)
-    // Acknowledge before navigation tears down the calling frame, as with property tab changes.
+    // Acknowledge before navigation; legacy hosts may still replace the calling frame.
     if (this.#propertyNavigationTimer !== null) clearTimeout(this.#propertyNavigationTimer)
     this.#propertyNavigationTimer = setTimeout(() => {
       this.#propertyNavigationTimer = null
@@ -237,20 +270,20 @@ class GatekeeperAppHostImpl extends RpcTarget {
   }
 
   getWorkflowRouteState(): WorkflowRouteState {
-    return this.#appRoute === "workflows" ? this.#getWorkflowRouteState() : {}
+    return this.getAppRoute() === "workflows" ? this.#getWorkflowRouteState() : {}
   }
 
   setWorkflowRouteState(value: unknown): void {
-    if (this.#appRoute !== "workflows") throw new TypeError("Workflow navigation is unavailable here.")
+    if (this.getAppRoute() !== "workflows") throw new TypeError("Workflow navigation is unavailable here.")
     this.#setWorkflowRouteState(parseWorkflowRouteState(value))
   }
 
   getPropertyRouteState(): GatekeeperAppPropertyRouteState {
-    return this.#appRoute === "properties" ? this.#getPropertyRouteState() : {}
+    return this.getAppRoute() === "properties" ? this.#getPropertyRouteState() : {}
   }
 
   setPropertyRouteState(value: unknown, mode: unknown): void {
-    if (this.#appRoute !== "properties") throw new TypeError("Property navigation is unavailable here.")
+    if (this.getAppRoute() !== "properties") throw new TypeError("Property navigation is unavailable here.")
     if (mode !== "push" && mode !== "replace") throw new TypeError("Invalid property navigation mode.")
     const state = parsePropertyRouteState(value)
     if (this.#propertyNavigationTimer !== null) clearTimeout(this.#propertyNavigationTimer)
@@ -265,14 +298,14 @@ class GatekeeperAppHostImpl extends RpcTarget {
   }
 
   getChatModelState(): Promise<GatekeeperChatModelState> {
-    if (!this.#chatModelsEnabled) {
+    if (!this.#chatModelsEnabled || this.getAppRoute() !== 'home') {
       throw new TypeError('Chat model selection is unavailable for this app.')
     }
     return this.#getChatModelState()
   }
 
   setChatModel(modelId: string | null): Promise<GatekeeperChatModelState> {
-    if (!this.#chatModelsEnabled) {
+    if (!this.#chatModelsEnabled || this.getAppRoute() !== 'home') {
       throw new TypeError('Chat model selection is unavailable for this app.')
     }
     if (modelId !== null && typeof modelId !== 'string') {
@@ -334,6 +367,8 @@ class GatekeeperAppHostImpl extends RpcTarget {
 
   // Cancel the rate limiter's pending resume timer once this host is no longer in use.
   dispose() {
+    this.#navigationReceiver?.[Symbol.dispose]?.()
+    this.#navigationReceiver = null
     this.#disposeRateLimiter()
     this.#themeReceiver?.[Symbol.dispose]?.()
     this.#themeReceiver = null
@@ -378,17 +413,23 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   }, [navigate])
   const propertyRouteStateRef = useRef<GatekeeperAppPropertyRouteState>({})
   propertyRouteStateRef.current = parsePropertyRouteState(location.search)
-  const propertyRouteStateKey = appRoute === "properties"
-    ? `${propertyRouteStateRef.current.property ?? propertyRouteStateRef.current.invalidProperty ?? "list"}:${propertyRouteStateRef.current.tab ?? "overview"}`
-    : ""
+  const appRouteRef = useRef(appRoute)
+  appRouteRef.current = appRoute
+  const propertyNavigationPending = useRef(false)
+  const [navigationCommit, setNavigationCommit] = useState(0)
   const setPropertyRouteState = useCallback<SetPropertyRouteState>((state, mode) => {
     if (mode === "push" && state.property) {
       const listState = { ...state }
       delete listState.property
       delete listState.tab
       delete listState.invalidProperty
+      propertyNavigationPending.current = true
       void navigate({ to: "/properties", search: listState, replace: true })
         .then(() => navigate({ to: "/properties", search: state }))
+        .finally(() => {
+          propertyNavigationPending.current = false
+          setNavigationCommit(value => value + 1)
+        })
       return
     }
     void navigate({ to: "/properties", search: state, replace: true })
@@ -545,11 +586,11 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
         themeRef.current,
         openTarget,
         openPrompt,
-        appRoute,
+        () => appRouteRef.current,
         openAppRoute,
         resolveWorkspaceTitles,
         acceptConnections,
-        chatModelsEnabled,
+        connectionsEnabled,
         loadChatModelState,
         setChatModel,
         () => routeStateRef.current,
@@ -590,14 +631,19 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     }
     // Re-establish the session if either the HTML or the `ui` capability changes, so a new frame
     // carrying a fresh stub (even with identical HTML) never keeps talking through the stale one.
-  }, [acceptConnections, appRoute, chatModelsEnabled, frame.iframeHtml, frame.ui,
+  }, [acceptConnections, connectionsEnabled, frame.iframeHtml, frame.ui,
       gatekeeperVendorId, loadChatModelState, openAppRoute, openPropertyGuide, openPrompt, openTarget, present,
-      propertyRouteStateKey, setChatModel, setPropertyRouteState, setWorkflowRouteState,
+      setChatModel, setPropertyRouteState, setWorkflowRouteState,
       resolveWorkspaceTitles, setOverlayPhase])
+
+  // URL changes update the existing MessagePort session, including browser Back/Forward.
+  const navigationKey = JSON.stringify([appRoute, propertyRouteStateRef.current, routeStateRef.current])
+  useEffect(() => {
+    if (!propertyNavigationPending.current) hostRef.current?.[UPDATE_NAVIGATION]()
+  }, [navigationKey, navigationCommit])
 
   return (
     <iframe
-      key={propertyRouteStateKey}
       ref={iframeRef}
       srcDoc={frame.iframeHtml}
       // allow-scripts: run the app's JS. allow-modals: its beforeunload unsaved-changes guard. Not

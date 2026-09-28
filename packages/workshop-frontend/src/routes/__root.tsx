@@ -11,6 +11,7 @@ import { AuthProvider } from '../AuthContext'
 import { FeatureFlagsProvider } from '../FeatureFlagsContext'
 import Header from '../components/Header'
 import AppShell from '../components/AppShell/AppShell'
+import LisbeyondRouteOutlet from '../components/LisbeyondRouteOutlet'
 import LoginPage from '../LoginPage'
 import OnboardingWizard from '../OnboardingWizard'
 import AccountSelectionModal from '../components/billing/AccountSelectionModal'
@@ -180,7 +181,7 @@ function AuthenticatedShell({
         </main>
       ) : (
         <AppShell>
-          <Outlet />
+          <LisbeyondRouteOutlet />
         </AppShell>
       )}
     </>
