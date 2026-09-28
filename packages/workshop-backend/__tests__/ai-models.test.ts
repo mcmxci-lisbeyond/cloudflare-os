@@ -65,6 +65,30 @@ async function captureRequest(handle: ModelHandle): Promise<CapturedRequest> {
   return capturedRequests[0];
 }
 
+// Transport failure plan for the revenue-capable model: wrong endpoint/model, missing
+// reasoning, unsupported sampling, provider storage, gateway body logging/caching, or
+// a caller overriding the private-data protections. This exercises the real pi adapter.
+it("sends GPT-6 Luna through Responses with private gateway transport", async () => {
+  capturedRequests.length = 0;
+  const handle = getModel(env(), {provider: "openai", model: "gpt-6-luna", apiToken: ""}, INITIATOR);
+  const stream = handle.stream(handle.model, {
+    messages: [{role: "user", content: "Read the monthly rental revenue using the property tool.", timestamp: 0}],
+    tools: [{name: "readPropertyRevenueMonths", description: "Read authorized monthly revenue", parameters: {type: "object", properties: {pNumber: {type: "string"}}, required: ["pNumber"]}}],
+  }, {fetch: fetchStub, maxRetries: 0, headers: {"cf-aig-collect-log-payload": "true", "cf-aig-skip-cache": "false"}});
+  await stream.result();
+  const request = capturedRequests[0];
+  expect(request.url).toBe("https://gateway.ai.cloudflare.com/v1/gateway-account-id/platform-gateway/openai/responses");
+  const body = JSON.parse(request.body);
+  expect(body.model).toBe("gpt-6-luna");
+  expect(body.reasoning.effort).toBe("medium");
+  expect(body.store).toBe(false);
+  expect(body.tools[0].name).toBe("readPropertyRevenueMonths");
+  expect(body.temperature).toBeUndefined();
+  expect(body.top_p).toBeUndefined();
+  expect(request.headers.get("cf-aig-collect-log-payload")).toBe("false");
+  expect(request.headers.get("cf-aig-skip-cache")).toBe("true");
+});
+
 describe("getModel AI Gateway routing", () => {
   beforeEach(() => {
     capturedRequests.length = 0;
