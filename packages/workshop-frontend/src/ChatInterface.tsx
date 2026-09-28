@@ -59,7 +59,6 @@ import * as Y from "yjs";
 import styles from "./ChatInterface.module.css";
 import {
   getStoredSelectedModel,
-  persistSelectedModel,
 } from "./modelSelection";
 import {
   Overseer,
@@ -1794,9 +1793,7 @@ export const ChatInput = ({
   getOverseer,
   onSend,
   isAgentActive,
-  models,
   selectedModel,
-  onModelChange,
   pendingConsoleLogCount = 0,
   consoleLogPreview = "",
   consoleLogSeverity = "info",
@@ -1836,7 +1833,6 @@ export const ChatInput = ({
   isAgentActive: boolean;
   models: AiChatAuthorInfo[];
   selectedModel: string | null;
-  onModelChange: (modelId: string | null) => void;
   pendingConsoleLogCount?: number;
   consoleLogPreview?: string;
   consoleLogSeverity?: "error" | "warn" | "info";
@@ -3168,9 +3164,7 @@ export const ChatInput = ({
     : consoleLogSeverity === "warn"
       ? "warning"
       : "log";
-  const selectedModelLabel = selectedModel == null
-    ? "No agent"
-    : models.find((model) => model.id === selectedModel)?.name ?? selectedModel;
+
 
   const hasReadyAttachment = pendingAttachments.some(
     (attachment) => attachment.uploadState === "ready" && attachment.ref,
@@ -3537,51 +3531,7 @@ export const ChatInput = ({
 
           {/* Right actions */}
           <div className="ml-auto flex min-w-0 flex-shrink items-center gap-1.5">
-              <DropdownMenu>
-                <DropdownMenu.Trigger
-                  render={
-                    <button
-                      type="button"
-                      className="group inline-flex h-8 min-w-0 max-w-[180px] cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[13px] leading-5 tracking-[-0.25px] text-kumo-subtle transition-[background-color,color,transform] duration-150 ease-out hover:bg-kumo-tint hover:text-kumo-default focus-visible:bg-kumo-tint focus-visible:text-kumo-default focus-visible:outline-none active:scale-[0.97] data-[popup-open]:bg-kumo-tint data-[popup-open]:text-kumo-default"
-                      aria-label="Select model"
-                    >
-                      <span className="min-w-0 truncate">{selectedModelLabel}</span>
-                      <CaretDown
-                        size={12}
-                        weight="bold"
-                        className="flex-shrink-0 text-kumo-inactive transition-transform duration-150 ease-out group-data-[popup-open]:rotate-180"
-                      />
-                    </button>
-                  }
-                />
-                <DropdownMenu.Content className="themed-floating-shadow-lg !z-[1100] !min-w-[190px] rounded-2xl border border-kumo-line/70 bg-kumo-base p-1">
-                  {models.map((model) => {
-                    const active = selectedModel === model.id;
-                    return (
-                      <DropdownMenu.Item
-                        key={model.id}
-                        onClick={() => onModelChange(model.id)}
-                        className="!h-auto rounded-xl !px-2 !py-1.5 text-[12px] leading-4 font-normal tracking-[-0.15px] text-kumo-subtle transition-colors data-highlighted:bg-kumo-tint/70 data-highlighted:text-kumo-default"
-                      >
-                        <span className="min-w-0 flex-1 truncate">{model.name}</span>
-                        {active && (
-                          <Check size={12} weight="bold" className="ml-3 flex-shrink-0 text-kumo-inactive" />
-                        )}
-                      </DropdownMenu.Item>
-                    );
-                  })}
-                  <div className="my-1 border-t border-kumo-line/70" />
-                  <DropdownMenu.Item
-                    onClick={() => onModelChange(null)}
-                    className="!h-auto rounded-xl !px-2 !py-1.5 text-[12px] leading-4 font-normal tracking-[-0.15px] text-kumo-subtle transition-colors data-highlighted:bg-kumo-tint/70 data-highlighted:text-kumo-default"
-                  >
-                    <span className="min-w-0 flex-1 truncate">No agent</span>
-                    {selectedModel == null && (
-                      <Check size={12} weight="bold" className="ml-3 flex-shrink-0 text-kumo-inactive" />
-                    )}
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu>
+              <span className="px-2 text-[13px] text-kumo-subtle">GPT-6 Luna</span>
               {isAgentActive && onStop ? (
                 <WorkshopIconButton
                   onClick={onStop}
@@ -4209,36 +4159,6 @@ export function computeMessageStates(
     revertTimestamps,
     activeChanges: updates,
   };
-}
-
-function inferSelectedModelFromMessages(messages: AiChatMessage[]): string | null {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-
-    if (msg.type === "error") {
-      if (msg.author.type === "agent") {
-        return msg.author.id;
-      }
-      continue;
-    }
-
-    if (msg.type === "message") {
-      return msg.author.type === "agent" ? msg.author.id : null;
-    }
-  }
-
-  return null;
-}
-
-function fallbackToStoredModelSelection(
-  modelId: string | null,
-  availableModels: AiChatAuthorInfo[],
-): string | null {
-  if (modelId !== null || availableModels.length > 0) {
-    return modelId;
-  }
-
-  return getStoredSelectedModel(availableModels);
 }
 
 interface ChatInterfaceProps {
@@ -5037,23 +4957,7 @@ function ChatInterface({
 
   // Update selected model when switching chats
   useEffect(() => {
-    if (selectedChatId === null) {
-      setSelectedModel(getStoredSelectedModel(availableModels));
-    } else {
-      // For existing threads:
-      // 1. If an AI agent is currently active, use that agent's model
-      if (activeAgent) {
-        setSelectedModel(activeAgent.id);
-      } else {
-        // 2. Otherwise, derive the model from the most recent agent message or agent error.
-        setSelectedModel(
-          fallbackToStoredModelSelection(
-            inferSelectedModelFromMessages(currentMessages),
-            availableModels,
-          ),
-        );
-      }
-    }
+    setSelectedModel(getStoredSelectedModel(availableModels));
   }, [selectedChatId, availableModels, currentMessages, activeAgent]);
 
   // Keep the ref in sync with selectedChatId state
@@ -5619,12 +5523,6 @@ function ChatInterface({
       }
       throw err;
     }
-  };
-
-  // Handle model change
-  const handleModelChange = (modelId: string | null) => {
-    setSelectedModel(modelId);
-    persistSelectedModel(modelId);
   };
 
   // Handle stopping the agent
@@ -6857,7 +6755,6 @@ function ChatInterface({
             isAgentActive={false}
             models={availableModels}
             selectedModel={selectedModel}
-            onModelChange={handleModelChange}
             showThinkingTraces={showThinkingTraces}
             onToggleThinkingTraces={toggleShowThinkingTraces}
             minRows={2}
@@ -7819,8 +7716,7 @@ function ChatInterface({
                     isAgentActive={isAgentActive}
                     models={availableModels}
                     selectedModel={selectedModel}
-                    onModelChange={handleModelChange}
-                    pendingConsoleLogCount={pendingConsoleLogCount}
+                            pendingConsoleLogCount={pendingConsoleLogCount}
                     consoleLogPreview={consoleLogPreview}
                     consoleLogSeverity={consoleLogSeverity}
                     onConsumeConsoleLogs={onConsumeConsoleLogs}

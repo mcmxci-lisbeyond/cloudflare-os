@@ -23,6 +23,8 @@ const QUICK_MODEL_ID = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const HTTPS_ONLY_PROVIDERS = new Set(["google"]);
 
 export class AiGatewayConfig {
+  /** Deployment policy applied to discovery and every inference path. */
+  readonly fixedModel?: UserAiModelRecord;
   readonly gateway: string;
   /**
    * The gateway name for Workers-AI-binding calls (webFetch's toMarkdown): binding calls only
@@ -75,6 +77,10 @@ export class AiGatewayConfig {
     this.providers = new Set(
       (env.CF_AI_GATEWAY_PROVIDERS || "").split(",").map(s => s.trim()).filter(s => s !== "")
     );
+    if (env.CF_AI_GATEWAY_FIXED_MODEL) {
+      this.fixedModel = this.resolveModel(env.CF_AI_GATEWAY_FIXED_MODEL);
+      if (!this.fixedModel) throw new Error("Deployment model is not available through AI Gateway.");
+    }
     const httpsOnly = [...this.providers].filter(p => HTTPS_ONLY_PROVIDERS.has(p));
     if (httpsOnly.length > 0 && !this.apiToken) {
       const names = httpsOnly.join(", ");
@@ -98,6 +104,7 @@ export class AiGatewayConfig {
    * Get the list of models available through AI Gateway, as AiChatAuthorInfo entries.
    */
   getModelList(): AiChatAuthorInfo[] {
+    if (this.fixedModel) return [this.fixedModel.profile];
     let result: AiChatAuthorInfo[] = [];
     for (let [provider, models] of Object.entries(SUGGESTED_MODELS)) {
       if (this.providers.has(provider)) {
@@ -136,6 +143,7 @@ export class AiGatewayConfig {
    * Get the AiModelConfig for the quick model (used for title generation).
    */
   getQuickModelConfig(): AiModelConfig | undefined {
+    if (this.fixedModel) return this.fixedModel.config;
     // Always use Workers AI here.
     return {
       provider: "cloudflare",

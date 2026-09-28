@@ -362,6 +362,14 @@ function makeHandle(args: HandleArgs): ModelHandle {
 export function getModel(env: Cloudflare.Env, config: AiModelConfig,
                          initiator: AiChatAuthorInfo,
                          options: ModelRoutingOptions = {}): ModelHandle {
+  // Enforce policy before user billing, stored capabilities, or direct-provider routing.
+  let gwConfig = getAiGatewayConfig(env);
+  if (env.CF_AI_GATEWAY_FIXED_MODEL && !gwConfig) {
+    throw new Error("Deployment model requires AI Gateway.");
+  }
+  if (gwConfig?.fixedModel) {
+    return getModelViaGateway(gwConfig, gwConfig.fixedModel.config, initiator, options);
+  }
   // BYOK: a connected user's own Cloudflare account pays for everything (all providers, including
   // Workers AI), routed through the user's own AI Gateway with unified billing. Honored regardless
   // of whether a platform AI Gateway is configured, so connected users are always billed correctly.
@@ -373,7 +381,6 @@ export function getModel(env: Cloudflare.Env, config: AiModelConfig,
 
   // Otherwise: when a platform AI Gateway is configured, route through it (platform-funded free
   // tier). The config's apiToken/apiUrl are ignored in that mode.
-  let gwConfig = getAiGatewayConfig(env);
   if (gwConfig) {
     return getModelViaGateway(gwConfig, config, initiator, options);
   }

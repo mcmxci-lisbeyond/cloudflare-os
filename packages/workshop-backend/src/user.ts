@@ -530,6 +530,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
 
     // When AI Gateway mode is active, include all suggested models for enabled providers.
     let gwConfig = getAiGatewayConfig(this.env);
+    if (gwConfig?.fixedModel) return [gwConfig.fixedModel.profile];
     let gwModelIds = new Set<string>();
     if (gwConfig) {
       for (let entry of gwConfig.getModelList()) {
@@ -549,6 +550,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
 
   async addModel(profile: AiChatAuthorInfo, config: AiModelConfig): Promise<void> {
     let gwConfig = getAiGatewayConfig(this.env);
+    if (gwConfig?.fixedModel) throw new Error("Models are managed by Lisbeyond OS.");
     if (gwConfig && !gwConfig.providers.has(config.provider)) {
       throw new Error(`Provider "${config.provider}" is not available in AI Gateway mode.`);
     }
@@ -572,10 +574,14 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
   }
 
   async setQuickModel(id: string | null): Promise<void> {
+    const fixed = getAiGatewayConfig(this.env)?.fixedModel;
+    if (fixed && id !== fixed.profile.id) throw new Error("Models are managed by Lisbeyond OS.");
     this.storage.quickModel.put(id);
   }
 
   async getQuickModel(): Promise<null | string> {
+    const fixed = getAiGatewayConfig(this.env)?.fixedModel;
+    if (fixed) return fixed.profile.id;
     let result = this.storage.quickModel.get();
     if (result && this.storage.aiModels.get(result)) {
       return result;
@@ -585,10 +591,14 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
   }
 
   async getPreferredModel(): Promise<string | null> {
+    const fixed = getAiGatewayConfig(this.env)?.fixedModel;
+    if (fixed) return fixed.profile.id;
     return this.storage.preferredModel.get();
   }
 
   async setPreferredModel(id: string | null): Promise<void> {
+    const fixed = getAiGatewayConfig(this.env)?.fixedModel;
+    if (fixed && id !== fixed.profile.id) throw new Error("Models are managed by Lisbeyond OS.");
     if (id !== null) {
       // Validate that the model exists in the user's configured models or as a gateway model.
       let gwConfig = getAiGatewayConfig(this.env);
@@ -701,7 +711,7 @@ export class UserDurableObject extends DurableObject<Cloudflare.Env> {
     if (modelId) {
       // In AI Gateway mode, resolve gateway models first.
       if (gwConfig) {
-        result.aiModel = gwConfig.resolveModel(modelId);
+        result.aiModel = gwConfig.fixedModel ?? gwConfig.resolveModel(modelId);
       }
       if (!result.aiModel) {
         result.aiModel = this.storage.aiModels.get(modelId);

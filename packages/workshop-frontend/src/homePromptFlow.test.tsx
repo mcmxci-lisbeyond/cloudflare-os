@@ -127,7 +127,7 @@ describe("Ask Bifana prompt route flow", () => {
     );
   });
 
-  it("keeps the seeded draft blocked until the Home preference is restored", async () => {
+  it("keeps the seeded draft blocked until the managed model is loaded", async () => {
     let resolveModels!: (models: Array<{ type: "agent"; id: string; name: string }>) => void;
     testState.listModels.mockReturnValueOnce(new Promise(resolve => { resolveModels = resolve; }));
     persistSelectedModel("model-b");
@@ -146,13 +146,13 @@ describe("Ask Bifana prompt route flow", () => {
     expect(testState.blockedReasons).toContain("Loading AI models…");
 
     await act(async () => resolveModels([
-      { type: "agent", id: "model-a", name: "Model A" },
+      { type: "agent", id: "gpt-6-luna", name: "GPT-6 Luna" },
       { type: "agent", id: "model-b", name: "Model B" },
     ]));
     await vi.waitFor(() => expect(requiredButton(rendered, "Send message").disabled).toBe(false));
     requiredButton(rendered, "Send message").click();
 
-    expect(testState.submittedModels).toEqual(["model-b"]);
+    expect(testState.submittedModels).toEqual(["gpt-6-luna"]);
     expect(testState.listModels).toHaveBeenCalledTimes(1);
   });
 
@@ -160,7 +160,7 @@ describe("Ask Bifana prompt route flow", () => {
     testState.listModels
       .mockRejectedValueOnce(new Error("Offline"))
       .mockResolvedValueOnce([
-        { type: "agent", id: "model-a", name: "Model A" },
+        { type: "agent", id: "gpt-6-luna", name: "GPT-6 Luna" },
       ]);
     container = document.createElement("div");
     document.body.append(container);
@@ -177,7 +177,7 @@ describe("Ask Bifana prompt route flow", () => {
     await act(async () => requiredButton(rendered, "Try again").click());
     await vi.waitFor(() => expect(requiredButton(rendered, "Send message").disabled).toBe(false));
 
-    expect(testState.selectedModels).toContain("model-a");
+    expect(testState.selectedModels).toContain("gpt-6-luna");
     expect(testState.listModels).toHaveBeenCalledTimes(2);
   });
 
@@ -194,7 +194,7 @@ describe("Ask Bifana prompt route flow", () => {
     root = createRoot(container);
     await act(async () => root!.render(<AskBifanaPageContent />));
 
-    await act(async () => testState.onSend?.("Show current priorities", "model-a"));
+    await act(async () => testState.onSend?.("Show current priorities", "gpt-6-luna"));
 
     expect(testState.navigate).toHaveBeenCalledWith({
       to: "/workspace/$id",
