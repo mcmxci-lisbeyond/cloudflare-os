@@ -16,6 +16,11 @@ export default defineConfig({
     cloudflareTest({
       main: "./src/server.ts",
       remoteBindings: false,
+      miniflare: { bindings: {
+        CF_AI_GATEWAY: "fixture-gateway", CF_AI_GATEWAY_ACCOUNT_ID: "fixture-account",
+        CF_AI_GATEWAY_API_TOKEN: "fixture-token", CF_AI_GATEWAY_PROVIDERS: "openai,anthropic",
+        CF_AI_GATEWAY_FIXED_MODEL: "gpt-6-luna",
+      } },
       wrangler: {
         configPath: "./wrangler.jsonc",
       },
@@ -33,6 +38,8 @@ export default defineConfig({
     // A rejected future capability is reported independently from the awaited pipelined call.
     // The tests assert these exact rejections; all unrelated unhandled errors remain fatal.
     onUnhandledError(error) {
+      // Native RPC reports the denied future capability separately; fixed-model asserts all three.
+      if (error.message === "Models are managed by Lisbeyond OS.") return false;
       const code = "code" in error ? error.code : undefined;
       if (typeof code === "string" && EXPECTED_OPEN_ERROR_CODES.has(code)) return false;
       // The reset-recovery tests abort every Durable Object mid-session; capabilities that were

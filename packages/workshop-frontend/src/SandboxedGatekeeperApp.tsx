@@ -437,7 +437,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   }, [connectionsEnabled, reportConnections])
 
   const loadChatModelState = useCallback<GetChatModelState>(async () => {
-    const models = await authenticatedApi.listModels()
+    const models = (await authenticatedApi.listModels()).filter(model => model.id === "gpt-6-luna")
     return {
       models: models.map(({ id, name }) => ({ id, name })),
       selectedModelId: getStoredSelectedModel(models),
@@ -445,8 +445,8 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   }, [authenticatedApi])
 
   const setChatModel = useCallback<SetChatModel>(async (modelId) => {
-    const models = await authenticatedApi.listModels()
-    if (modelId !== null && !models.some((model) => model.id === modelId)) {
+    const models = (await authenticatedApi.listModels()).filter(model => model.id === "gpt-6-luna")
+    if (modelId !== "gpt-6-luna" || !models.some((model) => model.id === modelId)) {
       throw new TypeError('Invalid chat model selection.')
     }
     persistSelectedModel(modelId)

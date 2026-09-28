@@ -44,7 +44,7 @@ const listGadgets = vi.fn<() => Promise<{ id: string; title: string }[]>>(async 
   { id: WORKSPACE_ID, title: "Daily Brief" },
 ]);
 const listModels = vi.fn<() => Promise<Array<{ type: "agent"; id: string; name: string }>>>(async () => [
-  { type: "agent" as const, id: "model-a", name: "Model A" },
+  { type: "agent" as const, id: "gpt-6-luna", name: "GPT-6 Luna" },
   { type: "agent" as const, id: "model-b", name: "Model B" },
 ]);
 const authenticatedApi = { listGadgets, listModels };
@@ -266,7 +266,7 @@ describe("SandboxedGatekeeperApp navigation", () => {
     await expect(host.getChatModelState()).rejects.toThrow(
       "Chat model selection is unavailable for this app.",
     );
-    await expect(host.setChatModel("model-a")).rejects.toThrow(
+    await expect(host.setChatModel("gpt-6-luna")).rejects.toThrow(
       "Chat model selection is unavailable for this app.",
     );
     expect(listModels).not.toHaveBeenCalled();
@@ -388,25 +388,16 @@ describe("SandboxedGatekeeperApp navigation", () => {
     await expect(host.getChatModelState()).rejects.toThrow("Model catalogue unavailable");
     await expect(host.getChatModelState()).resolves.toEqual({
       models: [
-        { id: "model-a", name: "Model A" },
-        { id: "model-b", name: "Model B" },
+        { id: "gpt-6-luna", name: "GPT-6 Luna" },
       ],
-      selectedModelId: "model-a",
+      selectedModelId: "gpt-6-luna",
     });
-    await expect(host.setChatModel("model-b")).resolves.toEqual({
-      models: [
-        { id: "model-a", name: "Model A" },
-        { id: "model-b", name: "Model B" },
-      ],
-      selectedModelId: "model-b",
-    });
-    expect(window.localStorage.getItem("lastSelectedModel")).toBe("model-b");
-    await expect(host.setChatModel("removed-model")).rejects.toThrow(
-      "Invalid chat model selection.",
-    );
-    expect(window.localStorage.getItem("lastSelectedModel")).toBe("model-b");
-    await expect(host.setChatModel(null)).resolves.toMatchObject({ selectedModelId: null });
-    await expect(host.getChatModelState()).resolves.toMatchObject({ selectedModelId: null });
+    await expect(host.setChatModel("gpt-6-luna")).resolves.toMatchObject({ selectedModelId: "gpt-6-luna" });
+    for (const model of ["model-b", "removed-model", null]) {
+      await expect(host.setChatModel(model)).rejects.toThrow("Invalid chat model selection.");
+    }
+    expect(window.localStorage.getItem("lastSelectedModel")).toBe("gpt-6-luna");
+    await expect(host.getChatModelState()).resolves.toMatchObject({ selectedModelId: "gpt-6-luna" });
 
     await expect(host.openPrompt("   ")).rejects.toThrow(
       "Gatekeeper app prompt cannot be empty",

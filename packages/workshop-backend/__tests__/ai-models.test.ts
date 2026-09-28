@@ -591,3 +591,16 @@ describe("PDF attachment bridging", () => {
     }));
   }, 15000);
 });
+
+// Deployment policy failure plan: stale custom models, different providers and a user's own
+// billing gateway must not bypass the fixed model or platform Gateway. Exercise real serialization.
+it("enforces the fixed deployment model before every inference route", async () => {
+  capturedRequests.length = 0;
+  const handle = getModel(env({ CF_AI_GATEWAY_FIXED_MODEL: "gpt-6-luna" }),
+    ANTHROPIC_CONFIG, INITIATOR, {
+      userGateway: { accountId: "other-account", apiKey: "other-token" },
+    });
+  const request = await captureRequest(handle);
+  expect(request.url).toContain("gateway-account-id/platform-gateway/openai/responses");
+  expect(JSON.parse(request.body).model).toBe("gpt-6-luna");
+});

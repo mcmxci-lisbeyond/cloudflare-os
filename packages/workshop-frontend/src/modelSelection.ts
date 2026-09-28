@@ -8,23 +8,8 @@ export const NO_AGENT_OPTION_VALUE = "__gadgets_no_agent__";
 export function getStoredSelectedModel(
   models: AiChatAuthorInfo[],
 ): string | null {
-  const storedModel = localStorage.getItem(LAST_SELECTED_MODEL_KEY);
-
-  if (storedModel === NO_AGENT_OPTION_VALUE) {
-    return null;
-  }
-
-  // Upgrade the old Luna preference for new chats; other explicit choices,
-  // including No agent, remain intact. Existing chats retain their own model.
-  const luna = models.find(model => model.id === "gpt-6-luna");
-  if (luna && (!storedModel || storedModel === "gpt-5.6-luna")) return luna.id;
-
-  if (storedModel && models.some((model) => model.id === storedModel)) {
-    return storedModel;
-  }
-
-  // Default: Return the first configured model, or null if none are configured.
-  return luna?.id ?? models[0]?.id ?? null;
+  // Lisbeyond manages the model. Ignore old browser preferences, including No agent.
+  return models.find(model => model.id === "gpt-6-luna")?.id ?? null;
 }
 
 export function persistSelectedModel(modelId: string | null): void {
