@@ -16,7 +16,6 @@ import {
 } from '@gadgets/workshop-shared/api'
 import {
   getStoredSelectedModel,
-  persistSelectedModel,
 } from '../modelSelection'
 import { useDocumentTitle } from '../useDocumentTitle'
 import { homePromptFromSearch } from '../homePrompt'
@@ -83,11 +82,6 @@ export function AskBifanaPageContent({ prompt }: AskBifanaSearch) {
     // `toasts` is deliberately not a dependency: useKumoToastManager returns a fresh object every
     // render, so including it refires this effect (and listModels) after its own setModels.
   }, [authenticatedApi, modelLoadAttempt])
-
-  const handleModelChange = useCallback((value: string | null) => {
-    setSelectedModel(value)
-    persistSelectedModel(value)
-  }, [])
 
   const provisionalOverseerRef = useRef<{ stub: RpcStub<Overseer> } | null>(null)
 
@@ -177,7 +171,6 @@ export function AskBifanaPageContent({ prompt }: AskBifanaSearch) {
           isAgentActive={false}
           models={models}
           selectedModel={selectedModel}
-          onModelChange={handleModelChange}
           newChat
           offerFormats
           autoFocus
