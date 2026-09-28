@@ -14,12 +14,17 @@ export function getStoredSelectedModel(
     return null;
   }
 
+  // Upgrade the old Luna preference for new chats; other explicit choices,
+  // including No agent, remain intact. Existing chats retain their own model.
+  const luna = models.find(model => model.id === "gpt-6-luna");
+  if (luna && (!storedModel || storedModel === "gpt-5.6-luna")) return luna.id;
+
   if (storedModel && models.some((model) => model.id === storedModel)) {
     return storedModel;
   }
 
   // Default: Return the first configured model, or null if none are configured.
-  return models[0]?.id ?? null;
+  return luna?.id ?? models[0]?.id ?? null;
 }
 
 export function persistSelectedModel(modelId: string | null): void {

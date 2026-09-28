@@ -309,7 +309,13 @@ function makeHandle(args: HandleArgs): ModelHandle {
         ...args.headers,
         ...options.headers,
         ...(args.gatewayMetadata
-            ? { "cf-aig-metadata": JSON.stringify(args.gatewayMetadata) }
+            ? {
+                "cf-aig-metadata": JSON.stringify(args.gatewayMetadata),
+                // Authorized business reads can include financial data. Callers cannot
+                // opt these payloads into gateway logs or response caching.
+                "cf-aig-collect-log-payload": "false",
+                "cf-aig-skip-cache": "true",
+              }
             : {}),
       };
       const merged: SimpleStreamOptions = {
