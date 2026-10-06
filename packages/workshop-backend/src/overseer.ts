@@ -22,6 +22,7 @@ import {
 } from "./ai-gateway";
 import { AgentGadgetInfo, AgentHooks, AiChatAgentContext, ChatBindingEntry, SeedBindingInfo, runAgent, makeStorableArgs, summarizeArgs, type AiChatMessageBodyWithModelData, type CompactionCheckpoint, type StoredAssistantMessage } from "./agent";
 import { deploymentOutputForBlueprint, FormatOffer, listFormatOffers, readAdminConfig } from "./admin-config";
+import { isGadgetCreationEnabled, requireGadgetCreationEnabled } from "./gadget-creation";
 import { foldProposedChanges, isCompactionTurn, type ChangeBatch } from "./agent-compaction";
 import { ambientGatekeeperMode } from "./provisioning-policy";
 import { listFeaturedBlueprintsFromKv, readBlueprintContent, readBlueprintKvRecord, sanitizeBlueprintOutput } from "./blueprint-archive";
@@ -1649,6 +1650,7 @@ class OverseerImpl implements AgentHooks {
   // if any.
   createGadget(title: string, bindingName: string, chatId?: number,
                output?: BlueprintOutput): GadgetRecord {
+    requireGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED);
     title = title.trim();
     if (!title) {
       throw new Error("A gadget requires a non-empty title.");
@@ -1773,6 +1775,7 @@ class OverseerImpl implements AgentHooks {
   // TODO(multi-gadget): Remove once blueprint instantiation is reworked (plan phase 5).
   ensureDefaultGadget(): void {
     if (this.defaultGadgetId !== undefined) return;
+    requireGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED);
     let id = this.allocateWorkpieceId();
     // Set defaultGadgetId first so subscribers computing gadgetRootName() see the legacy names.
     this.storage.defaultGadgetId.put(id);
@@ -5725,6 +5728,10 @@ class OverseerImpl implements AgentHooks {
     return promise;
   }
 
+  isGadgetCreationEnabled(): boolean {
+    return isGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED);
+  }
+
   async getInstanceInstructions(): Promise<string> {
     try {
       // Cheap single KV get from the mirror AdminSettings maintains; avoids the singleton DO.
@@ -6854,6 +6861,7 @@ export class OverseerDurableObject extends DurableObject<Cloudflare.Env> {
    */
   async initializeFromBlueprint(code: Uint8Array, title: string, output?: BlueprintOutput)
       : Promise<void> {
+    requireGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED);
     // Set the title. The default gadget (created just below) inherits it.
     this.impl.storage.title.put(title);
 
@@ -7525,6 +7533,7 @@ class OverseerClientInterface extends RpcTarget implements Overseer {
 
   async createGadget(title: string, chatId?: number, bindingName?: string)
       : Promise<RpcStub<GadgetClient>> {
+    requireGadgetCreationEnabled(this.impl.env.GADGET_CREATION_ENABLED);
     // When creating within a chat, names already claimed in that chat's scope (its frozen seed
     // plus log-derived bindings) are off-limits too: the chat's binding map is keyed by name,
     // so on replay the existing binding would win and the new gadget would never be addressable

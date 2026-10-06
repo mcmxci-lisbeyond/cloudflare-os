@@ -7,6 +7,8 @@
     "watch_dir": "src"
   },
   "compatibility_date": "2026-02-02",
+  // Self-hosted deployments can pause creation without disabling chats or existing gadgets.
+  "vars": { "GADGET_CREATION_ENABLED": "true" },
 
   // `global_fetch_strictly_public` makes the global fetch() function strictly fetch from
   // the public internet in production, rather than the legacy behavior in which same-zone

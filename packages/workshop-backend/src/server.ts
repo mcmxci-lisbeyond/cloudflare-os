@@ -10,6 +10,7 @@ import { getUsageInfo } from "./ai-gateway-billing/limits/usage-checker.js";
 import { listConnectedAccounts, selectAccount } from "./ai-gateway-billing/cloudflare/connection-service.js";
 import { PendingLogin, LoginConnectCallbackImpl } from "./auth/login-flow.js";
 import { deploymentOutputForBlueprint, listFormatOffers, readAdminConfig } from "./admin-config.js";
+import { isGadgetCreationEnabled, requireGadgetCreationEnabled } from "./gadget-creation.js";
 
 // Re-export the optional-feature Durable Objects + entrypoints so they can be bound in wrangler.
 export { PendingLogin, LoginConnectCallbackImpl };
@@ -304,6 +305,7 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
   }
 
   async listOutputFormats(): Promise<OutputFormatOffer[]> {
+    if (!isGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED)) return [];
     let offers = await listFormatOffers(this.env, await readAdminConfig(this.env));
     // Neither the agent's hint nor the binding details are part of what a user is offered here.
     return offers.map(({agentHint: _agentHint, bindings: _bindings, ...offer}) => offer);
@@ -433,6 +435,7 @@ class AuthenticatedApiImpl extends RpcTarget implements AuthenticatedApi {
     blueprintId: string,
     bindings: Record<string, BlueprintBindingAssignment>
   ): Promise<RpcStub<Overseer>> {
+    requireGadgetCreationEnabled(this.env.GADGET_CREATION_ENABLED);
     // 1. Read blueprint from KV.
     let kvRecord = await readBlueprintKvRecord(this.env, blueprintId);
     if (!kvRecord) throw new Error("Blueprint not found.");
