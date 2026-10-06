@@ -275,6 +275,9 @@ export interface AgentHooks {
    */
   listGadgetInfo(forChatId: number): AgentGadgetInfo[];
 
+  /** Whether the deployment permits the agent to create new gadgets. */
+  isGadgetCreationEnabled(): boolean;
+
   /**
    * Resolve an agent tool's optional workpiece reference to the workpiece's files root. Absent
    * means the workspace's default gadget; throws an agent-readable error if there is none. When
@@ -446,18 +449,21 @@ export interface AgentHooks {
 // =======================================================================================
 // Agent system prompt and tool descriptions
 
-let SYSTEM_PROMPT = `
-You are a helpful coding assistant tasked with helping users write small personal applications known as "Gadgets". A Gadget is an application that typically serves a single user, or a small group, rather than being public-facing. They may help a user automate part of their job, or just be gadgets the user makes for fun.
+let SYSTEM_PROMPT = (gadgetCreationEnabled: boolean) => `
+${gadgetCreationEnabled
+    ? 'You are a helpful coding assistant tasked with helping users write small personal applications known as "Gadgets".'
+    : 'You are a helpful assistant helping users answer questions, analyze connected information, and use existing Gadgets.'} A Gadget is an application that typically serves a single user, or a small group, rather than being public-facing. They may help a user automate part of their job, or just be gadgets the user makes for fun.
 
 # Workspaces
 
 You are working within a "workspace". A workspace contains any number of Gadgets, plus connections to external resources. Each of these is available to you as a named binding in your \`env\` (used with the \`executeCode\` tool, described later). The workspace's current Gadgets, along with each one's files and bindings, are listed later in this prompt with the \`env\` name each one goes by.
 
-A new workspace contains no Gadgets: use the \`createGadget\` tool to create one before writing any code. Most workspaces contain a single Gadget, but the user may ask you to build several Gadgets that work together.
+${gadgetCreationEnabled ? `A new workspace contains no Gadgets: use the \`createGadget\` tool to create one before writing any code. Most workspaces contain a single Gadget, but the user may ask you to build several Gadgets that work together.
 
 When the user asks for a new Gadget, ALWAYS consider starting from a blueprint. A blueprint is code for a specific type of Gadget that has already been written. The \`listBlueprints\` tool returns a list of available blueprints. If any of them match the user's request, and the user did not explicitly request otherwise, you should create a new gadget starting from a blueprint.
 
-Note that users rarely ask for "a Gadget" in those words. They ask for a thing: a doc, a deck, a tracker, a tool that does X. Any of those is a request for a new Gadget, and so a request to consider a blueprint — including when the workspace already contains a Gadget, which does not make the request an edit to that one.
+Note that users rarely ask for "a Gadget" in those words. They ask for a thing: a doc, a deck, a tracker, a tool that does X. Any of those is a request for a new Gadget, and so a request to consider a blueprint — including when the workspace already contains a Gadget, which does not make the request an edit to that one.`
+    : `Gadget creation is temporarily disabled for this deployment. Answer questions and analyze information in the conversation using connected resources. Do not create or offer new gadgets, documents, sheets, decks, or other blueprint outputs. If the user asks for a chart or new artifact, explain the current limit and provide the available information in the conversation. Existing gadgets remain available; use or edit them only when requested.`}
 
 Tools refer to Gadgets by their binding name in your env: the file tools (\`readFile\`, \`writeFile\`, \`editFile\`) take a \`gadget\` parameter naming the Gadget that owns the file, and \`setGadgetBinding\` takes a \`gadget\` parameter naming the Gadget whose bindings to modify. Some older workspaces have a "default" Gadget (noted in the gadget list) which the file tools fall back to when \`gadget\` is omitted; even so, prefer passing the name explicitly.
 
@@ -1222,6 +1228,7 @@ export async function runAgent(
   // in this snapshot, but nothing here needs it: the system prompt was already built, and
   // replayed "changes" messages predate it.
   let gadgetInfos = hooks.listGadgetInfo(chatId);
+  let gadgetCreationEnabled = hooks.isGadgetCreationEnabled();
 
   // On first use, we'll build a copy of the Y.Doc, then reuse it for further tool calls in
   // this session. Each gadget's files live in the doc's root map named by
@@ -2253,8 +2260,10 @@ export async function runAgent(
     let systemPromptWorkspace: string;
     if (gadgetInfos.length == 0) {
       systemPromptWorkspace =
-          "This workspace does not contain any gadgets yet. Before writing any code, create a " +
-          "gadget with the `createGadget` tool.";
+          "This workspace does not contain any gadgets yet." +
+          (gadgetCreationEnabled
+              ? " Before writing any code, create a gadget with the `createGadget` tool."
+              : " Answer in the conversation using the connected resources.");
     } else {
       let sections = gadgetInfos.map(info => {
         let files = [...getSessionYDoc().getMap<Y.Text>(info.rootName).keys()];
@@ -2308,7 +2317,7 @@ export async function runAgent(
 
     // Named in the prompt because the request that should trigger them ("make me a doc") may
     // not look trigger the agent to browse blueprints.
-    let standardFormats = await hooks.describeStandardFormats();
+    let standardFormats = gadgetCreationEnabled ? await hooks.describeStandardFormats() : "";
 
     // Build connectable-vendors section. We only list vendor names here; the agent fetches a
     // vendor's resource URL patterns on demand via listConnectableResources.
@@ -2333,8 +2342,8 @@ export async function runAgent(
     // Split the system prompt into static and dynamic parts for better caching.
     systemPromptSlots = [
       instanceInstructions
-          ? `${SYSTEM_PROMPT}\n\n${instanceInstructions}`
-          : SYSTEM_PROMPT,
+          ? `${SYSTEM_PROMPT(gadgetCreationEnabled)}\n\n${instanceInstructions}`
+          : SYSTEM_PROMPT(gadgetCreationEnabled),
       (standardFormats ? `${standardFormats}\n\n` : "") +
           `${systemPromptWorkspace}${systemPromptConnections}` +
           (alwaysAvailableResourcesPrompt ? `\n\n${alwaysAvailableResourcesPrompt}` : ""),
@@ -2982,7 +2991,8 @@ export async function runAgent(
     };
   }
 
-  let toolList = Object.values(tools);
+  let toolList = Object.values(tools).filter(tool => gadgetCreationEnabled ||
+      (tool.name !== "createGadget" && tool.name !== "listBlueprints"));
 
   // Records a turn that ended with a provider error, so it can be rethrown for the overseer's
   // error triage after the loop settles. (pi never throws for provider failures; the loop
