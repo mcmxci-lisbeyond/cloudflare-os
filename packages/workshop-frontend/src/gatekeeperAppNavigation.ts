@@ -150,15 +150,23 @@ export function parsePropertyGuideTarget(value: unknown): string {
   return value;
 }
 
-/** Only the existing governed guide/review destinations may escape the app frame. */
+// Exact hosts of the source records the Lisbeyond app links to: Notion pages, the Lisbeyond
+// Salesforce org (Bifana's SALESFORCE_INSTANCE_URL) and Google Drive/Docs folders.
+const SOURCE_HOSTS = new Set([
+  "notion.so", "www.notion.so", "notion.com", "www.notion.com", "app.notion.com",
+  "lisbeyondsf2025.my.salesforce.com",
+  "drive.google.com", "docs.google.com",
+]);
+
+/** Only governed source-record destinations (and Slack message permalinks) may escape the app frame. */
 export function parseGuideSourceUrl(value: unknown): string {
   if (typeof value !== "string" || value.length > 2000) throw new TypeError("Invalid guide source link.");
   let url: URL;
   try { url = new URL(value); } catch { throw new TypeError("Invalid guide source link."); }
-  const notion = ["notion.so", "www.notion.so", "notion.com", "www.notion.com", "app.notion.com"].includes(url.hostname);
+  const source = SOURCE_HOSTS.has(url.hostname);
   const slack = (url.hostname === "slack.com" || /^[a-z0-9-]+\.slack\.com$/.test(url.hostname))
     && /^\/archives\/[CG][A-Z0-9]{8,}\/p\d+$/.test(url.pathname);
-  if (url.protocol !== "https:" || url.username || url.password || url.port || (!notion && !slack)) {
+  if (url.protocol !== "https:" || url.username || url.password || url.port || (!source && !slack)) {
     throw new TypeError("Invalid guide source link.");
   }
   return url.href;

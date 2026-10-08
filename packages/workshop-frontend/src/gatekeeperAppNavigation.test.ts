@@ -24,10 +24,10 @@ describe("guide navigation targets", () => {
       expect(() => parsePropertyGuideTarget(value)).toThrow("Invalid property guide target");
     }
   });
-  it.each(["https://www.notion.so/fixture-guide", "https://app.notion.com/fixture-revision", "https://slack.com/archives/C12345678/p1780000000000000", "https://lisbeyond.slack.com/archives/C12345678/p1780000000000000"])("accepts a governed source %s", value => {
+  it.each(["https://www.notion.so/fixture-guide", "https://app.notion.com/fixture-revision", "https://slack.com/archives/C12345678/p1780000000000000", "https://lisbeyond.slack.com/archives/C12345678/p1780000000000000", "https://lisbeyondsf2025.my.salesforce.com/lightning/r/Property__c/a0P000000000001AAA/view", "https://lisbeyondsf2025.my.salesforce.com/lightning/r/Lead/00Q000000000001AAA/view", "https://drive.google.com/drive/folders/fixture", "https://docs.google.com/document/d/fixture/edit"])("accepts a governed source %s", value => {
     expect(parseGuideSourceUrl(value)).toBe(value);
   });
-  it.each([null, {}, "javascript:alert(1)", "http://www.notion.so/page", "https://notion.so.evil.test/page", "https://evil.test/page", "https://user@notion.so/page", "https://notion.so:8443/page", "https://slack.com/redirect?url=https://evil.test", "https://www.notion.so/" + "x".repeat(2000)])("rejects an unsupported source %s", value => {
+  it.each([null, {}, "javascript:alert(1)", "http://www.notion.so/page", "https://notion.so.evil.test/page", "https://evil.test/page", "https://user@notion.so/page", "https://notion.so:8443/page", "https://slack.com/redirect?url=https://evil.test", "https://other.my.salesforce.com/lightning/r/Lead/00Q/view", "https://lisbeyondsf2025.my.salesforce.com.evil.test/page", "http://lisbeyondsf2025.my.salesforce.com/page", "https://lisbeyondsf2025.my.salesforce.com:8443/page", "https://google.com/url?q=https://evil.test", "https://drive.google.com.evil.test/file", "https://user@docs.google.com/document/d/x", "https://www.notion.so/" + "x".repeat(2000)])("rejects an unsupported source %s", value => {
     expect(() => parseGuideSourceUrl(value)).toThrow("Invalid guide source link");
   });
 });
