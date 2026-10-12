@@ -3,6 +3,7 @@ import {
   Buildings,
   ChartPieSlice,
   ChatCircleDots,
+  ClipboardText,
   Hexagon,
   House,
   Lightning,
@@ -137,6 +138,12 @@ export default function Sidebar({
               to="/ask-bifana"
               label="Ask Bifana"
               icon={<ChatCircleDots size={14} weight="regular" />}
+              collapsed={collapsed}
+            />
+            <SidebarItem
+              to="/onboarding"
+              label="Onboarding"
+              icon={<ClipboardText size={14} weight="regular" />}
               collapsed={collapsed}
             />
             <SidebarItem

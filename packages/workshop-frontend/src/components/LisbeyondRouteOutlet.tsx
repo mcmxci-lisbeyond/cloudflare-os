@@ -6,7 +6,7 @@ const titles: Record<LisbeyondProductRoute, string> = {
   home: 'Home', properties: 'Properties', portfolio: 'Portfolio',
   'portfolio/revenue-management': 'Portfolio', 'portfolio/business-pulse': 'Portfolio',
   'portfolio/new-leads': 'Portfolio', 'sales/new-leads': 'New Leads',
-  workflows: 'Workflows', connections: 'Connections', settings: 'Settings',
+  onboarding: 'Onboarding', workflows: 'Workflows', connections: 'Connections', settings: 'Settings',
 }
 
 /** The authenticated shell owns this instance, so sibling product routes cannot remount it. */

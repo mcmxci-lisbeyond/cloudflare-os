@@ -11,6 +11,7 @@ export const GATEKEEPER_APP_ROUTES = {
   "portfolio/new-leads": "/portfolio/new-leads",
   "sales/new-leads": "/sales/new-leads",
   "ask-bifana": "/ask-bifana",
+  onboarding: "/onboarding",
   workflows: "/workflows",
   connections: "/connections",
   settings: "/settings",
