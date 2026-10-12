@@ -11,6 +11,7 @@ export type LisbeyondProductRoute =
   | 'portfolio/business-pulse'
   | 'portfolio/new-leads'
   | 'sales/new-leads'
+  | 'onboarding'
   | 'workflows'
   | 'connections'
   | 'settings'

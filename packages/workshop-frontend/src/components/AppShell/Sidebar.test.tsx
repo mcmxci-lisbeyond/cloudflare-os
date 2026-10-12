@@ -39,6 +39,7 @@ const ROUTES = [
   '/portfolio',
   '/sales/new-leads',
   '/ask-bifana',
+  '/onboarding',
   '/workflows',
   '/connections',
 ] as const
@@ -154,15 +155,16 @@ describe('Console v3 sidebar', () => {
     expect(onToggleCollapsed).toHaveBeenCalledTimes(2)
   })
 
-  it('renders five primary items and moves Connections out of primary navigation', async () => {
+  it('renders six primary items and moves Connections out of primary navigation', async () => {
     const view = await renderSidebar()
     const navLinks = [...view.querySelectorAll('nav a')]
-    expect(navLinks).toHaveLength(5)
+    expect(navLinks).toHaveLength(6)
     expect(navLinks.map((link) => link.textContent)).toEqual([
       'Home',
       'Properties',
       'Portfolio',
       'Ask Bifana',
+      'Onboarding',
       'Workflows',
     ])
     expect(navLinks.some((link) => link.getAttribute('href') === '/connections')).toBe(false)

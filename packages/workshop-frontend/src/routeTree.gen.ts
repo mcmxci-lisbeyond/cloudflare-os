@@ -17,6 +17,7 @@ import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as ContextRouteImport } from './routes/context'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as GatekeepersRouteImport } from './routes/gatekeepers'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OutputsRouteImport } from './routes/outputs'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -73,6 +74,11 @@ const ExploreRoute = ExploreRouteImport.update({
 const GatekeepersRoute = GatekeepersRouteImport.update({
   id: '/gatekeepers',
   path: '/gatekeepers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutputsRoute = OutputsRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
   '/gatekeepers': typeof GatekeepersRoute
+  '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
   '/gatekeepers': typeof GatekeepersRoute
+  '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
   '/gatekeepers': typeof GatekeepersRoute
+  '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/context'
     | '/explore'
     | '/gatekeepers'
+    | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/context'
     | '/explore'
     | '/gatekeepers'
+    | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/context'
     | '/explore'
     | '/gatekeepers'
+    | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   ContextRoute: typeof ContextRoute
   ExploreRoute: typeof ExploreRoute
   GatekeepersRoute: typeof GatekeepersRoute
+  OnboardingRoute: typeof OnboardingRoute
   OutputsRoute: typeof OutputsRoute
   PortfolioRoute: typeof PortfolioRoute
   ProfileRoute: typeof ProfileRoute
@@ -412,6 +425,13 @@ declare module '@tanstack/react-router' {
       path: '/gatekeepers'
       fullPath: '/gatekeepers'
       preLoaderRoute: typeof GatekeepersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outputs': {
@@ -545,6 +565,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContextRoute: ContextRoute,
   ExploreRoute: ExploreRoute,
   GatekeepersRoute: GatekeepersRoute,
+  OnboardingRoute: OnboardingRoute,
   OutputsRoute: OutputsRoute,
   PortfolioRoute: PortfolioRoute,
   ProfileRoute: ProfileRoute,
