@@ -87,7 +87,7 @@ export interface GatekeeperAppNavigation {
   property: GatekeeperAppPropertyRouteState;
   workflow: {
     workflow?: string;
-    tab?: "invoices" | "overview" | "activity" | "about";
+    tab?: "invoices" | "overview" | "activity" | "about" | "payments" | "paid";
     status?: "to_review" | "decided" | "needs_help" | "all" | "awaiting_approval" | "approved" | "handed_off" | "rejected" | "needs_human";
     item?: string;
   };

@@ -121,7 +121,7 @@ export function parseGatekeeperAppRoute(value: unknown): GatekeeperAppRoute {
 /** Supported workflow deep-link state; it carries navigation only, never authority. */
 export type WorkflowRouteState = {
   workflow?: string;
-  tab?: "invoices" | "overview" | "activity" | "about";
+  tab?: "invoices" | "overview" | "activity" | "about" | "payments" | "paid";
   status?: "to_review" | "decided" | "needs_help" | "all" | "awaiting_approval" |
     "approved" | "handed_off" | "rejected" | "needs_human";
   item?: string;
@@ -132,7 +132,7 @@ export function parseWorkflowRouteState(value: unknown): WorkflowRouteState {
   if (!isRecord(value)) return {};
   const state: WorkflowRouteState = {};
   if (typeof value.workflow === "string" && /^[a-z0-9][a-z0-9-]{0,99}$/.test(value.workflow)) state.workflow = value.workflow;
-  if (typeof value.tab === "string" && ["invoices", "overview", "activity", "about"].includes(value.tab)) state.tab = value.tab as WorkflowRouteState["tab"];
+  if (typeof value.tab === "string" && ["invoices", "overview", "activity", "about", "payments", "paid"].includes(value.tab)) state.tab = value.tab as WorkflowRouteState["tab"];
   if (typeof value.status === "string" && ["to_review", "decided", "needs_help", "all",
     "awaiting_approval", "approved", "handed_off", "rejected", "needs_human"].includes(value.status)) {
     state.status = value.status as WorkflowRouteState["status"];
