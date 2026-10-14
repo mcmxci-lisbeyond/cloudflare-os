@@ -166,6 +166,10 @@ describe("workflow URL state", () => {
     expect(parseWorkflowRouteState({ workflow: "renovations-invoice-intake", tab: "invoices", status }))
       .toEqual({ workflow: "renovations-invoice-intake", tab: "invoices", status });
   });
+  it.each(["payments", "paid"] as const)("retains the %s tab across a reload (LIS-289)", tab => {
+    expect(parseWorkflowRouteState({ workflow: "renovations-invoice-intake", tab }))
+      .toEqual({ workflow: "renovations-invoice-intake", tab });
+  });
   it("drops invalid, oversized and array values without accepting another path", () => {
     expect(parseWorkflowRouteState({ workflow: "../../settings", tab: "admin", status: ["approved"], item: "x".repeat(201) })).toEqual({});
     expect(parseWorkflowRouteState(null)).toEqual({});
