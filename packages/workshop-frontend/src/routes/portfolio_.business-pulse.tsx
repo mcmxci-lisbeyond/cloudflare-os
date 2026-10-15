@@ -1,9 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import LisbeyondRoutePage from '../components/LisbeyondRoutePage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+// Business Pulse moved to the Management section (LIS-307); old links keep working.
 export const Route = createFileRoute('/portfolio_/business-pulse')({
-  component: () => <LisbeyondRoutePage
-    route="portfolio/business-pulse"
-    title="Weekly Business Pulse"
-  />,
+  beforeLoad: () => {
+    throw redirect({ to: '/management/business-pulse', search: true, hash: true, replace: true })
+  },
+  component: () => null,
 })

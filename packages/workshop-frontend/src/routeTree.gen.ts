@@ -16,24 +16,37 @@ import { Route as BlueprintsRouteImport } from './routes/blueprints'
 import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as ContextRouteImport } from './routes/context'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as GatekeepersRouteImport } from './routes/gatekeepers'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OutputsRouteImport } from './routes/outputs'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PropertiesRouteImport } from './routes/properties'
+import { Route as PropertyManagementRouteImport } from './routes/property-management'
 import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as RenovationsRouteImport } from './routes/renovations'
+import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as UpkeepRouteImport } from './routes/upkeep'
 import { Route as WorkflowsRouteImport } from './routes/workflows'
 import { Route as WorkspacesRouteImport } from './routes/workspaces'
 import { Route as BlueprintIdRouteImport } from './routes/blueprint.$id'
+import { Route as FinanceInvoicesRouteImport } from './routes/finance_.invoices'
+import { Route as FinancePnlRouteImport } from './routes/finance_.pnl'
 import { Route as GadgetIdRouteImport } from './routes/gadget.$id'
 import { Route as GatekeepersAppIdRouteImport } from './routes/gatekeepers_.$appId'
+import { Route as ManagementBusinessPulseRouteImport } from './routes/management_.business-pulse'
 import { Route as PortfolioBusinessPulseRouteImport } from './routes/portfolio_.business-pulse'
 import { Route as PortfolioNewLeadsRouteImport } from './routes/portfolio_.new-leads'
 import { Route as PortfolioRevenueManagementRouteImport } from './routes/portfolio_.revenue-management'
+import { Route as PropertyManagementGuestSuccessRouteImport } from './routes/property-management_.guest-success'
+import { Route as PropertyManagementOwnerSuccessRouteImport } from './routes/property-management_.owner-success'
+import { Route as PropertyManagementRevenueManagementRouteImport } from './routes/property-management_.revenue-management'
+import { Route as RenovationsInvoiceReviewRouteImport } from './routes/renovations_.invoice-review'
 import { Route as SalesNewLeadsRouteImport } from './routes/sales_.new-leads'
+import { Route as UpkeepOnboardingRouteImport } from './routes/upkeep_.onboarding'
 import { Route as WorkspaceIdRouteImport } from './routes/workspace.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +84,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GatekeepersRoute = GatekeepersRouteImport.update({
   id: '/gatekeepers',
   path: '/gatekeepers',
@@ -101,9 +119,24 @@ const PropertiesRoute = PropertiesRouteImport.update({
   path: '/properties',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PropertyManagementRoute = PropertyManagementRouteImport.update({
+  id: '/property-management',
+  path: '/property-management',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RenovationsRoute = RenovationsRouteImport.update({
+  id: '/renovations',
+  path: '/renovations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesRoute = SalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -114,6 +147,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpkeepRoute = UpkeepRouteImport.update({
+  id: '/upkeep',
+  path: '/upkeep',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkflowsRoute = WorkflowsRouteImport.update({
@@ -131,6 +169,16 @@ const BlueprintIdRoute = BlueprintIdRouteImport.update({
   path: '/blueprint/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceInvoicesRoute = FinanceInvoicesRouteImport.update({
+  id: '/finance_/invoices',
+  path: '/finance/invoices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinancePnlRoute = FinancePnlRouteImport.update({
+  id: '/finance_/pnl',
+  path: '/finance/pnl',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GadgetIdRoute = GadgetIdRouteImport.update({
   id: '/gadget/$id',
   path: '/gadget/$id',
@@ -139,6 +187,11 @@ const GadgetIdRoute = GadgetIdRouteImport.update({
 const GatekeepersAppIdRoute = GatekeepersAppIdRouteImport.update({
   id: '/gatekeepers_/$appId',
   path: '/gatekeepers/$appId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagementBusinessPulseRoute = ManagementBusinessPulseRouteImport.update({
+  id: '/management_/business-pulse',
+  path: '/management/business-pulse',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfolioBusinessPulseRoute = PortfolioBusinessPulseRouteImport.update({
@@ -157,9 +210,38 @@ const PortfolioRevenueManagementRoute =
     path: '/portfolio/revenue-management',
     getParentRoute: () => rootRouteImport,
   } as any)
+const PropertyManagementGuestSuccessRoute =
+  PropertyManagementGuestSuccessRouteImport.update({
+    id: '/property-management_/guest-success',
+    path: '/property-management/guest-success',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PropertyManagementOwnerSuccessRoute =
+  PropertyManagementOwnerSuccessRouteImport.update({
+    id: '/property-management_/owner-success',
+    path: '/property-management/owner-success',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PropertyManagementRevenueManagementRoute =
+  PropertyManagementRevenueManagementRouteImport.update({
+    id: '/property-management_/revenue-management',
+    path: '/property-management/revenue-management',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RenovationsInvoiceReviewRoute =
+  RenovationsInvoiceReviewRouteImport.update({
+    id: '/renovations_/invoice-review',
+    path: '/renovations/invoice-review',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SalesNewLeadsRoute = SalesNewLeadsRouteImport.update({
   id: '/sales_/new-leads',
   path: '/sales/new-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpkeepOnboardingRoute = UpkeepOnboardingRouteImport.update({
+  id: '/upkeep_/onboarding',
+  path: '/upkeep/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceIdRoute = WorkspaceIdRouteImport.update({
@@ -176,24 +258,37 @@ export interface FileRoutesByFullPath {
   '/connections': typeof ConnectionsRoute
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
+  '/finance': typeof FinanceRoute
   '/gatekeepers': typeof GatekeepersRoute
   '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
   '/properties': typeof PropertiesRoute
+  '/property-management': typeof PropertyManagementRoute
   '/providers': typeof ProvidersRoute
+  '/renovations': typeof RenovationsRoute
+  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/upkeep': typeof UpkeepRoute
   '/workflows': typeof WorkflowsRoute
   '/workspaces': typeof WorkspacesRoute
   '/blueprint/$id': typeof BlueprintIdRoute
+  '/finance/invoices': typeof FinanceInvoicesRoute
+  '/finance/pnl': typeof FinancePnlRoute
   '/gadget/$id': typeof GadgetIdRoute
   '/gatekeepers/$appId': typeof GatekeepersAppIdRoute
+  '/management/business-pulse': typeof ManagementBusinessPulseRoute
   '/portfolio/business-pulse': typeof PortfolioBusinessPulseRoute
   '/portfolio/new-leads': typeof PortfolioNewLeadsRoute
   '/portfolio/revenue-management': typeof PortfolioRevenueManagementRoute
+  '/property-management/guest-success': typeof PropertyManagementGuestSuccessRoute
+  '/property-management/owner-success': typeof PropertyManagementOwnerSuccessRoute
+  '/property-management/revenue-management': typeof PropertyManagementRevenueManagementRoute
+  '/renovations/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRoutesByTo {
@@ -204,24 +299,37 @@ export interface FileRoutesByTo {
   '/connections': typeof ConnectionsRoute
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
+  '/finance': typeof FinanceRoute
   '/gatekeepers': typeof GatekeepersRoute
   '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
   '/properties': typeof PropertiesRoute
+  '/property-management': typeof PropertyManagementRoute
   '/providers': typeof ProvidersRoute
+  '/renovations': typeof RenovationsRoute
+  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/upkeep': typeof UpkeepRoute
   '/workflows': typeof WorkflowsRoute
   '/workspaces': typeof WorkspacesRoute
   '/blueprint/$id': typeof BlueprintIdRoute
+  '/finance/invoices': typeof FinanceInvoicesRoute
+  '/finance/pnl': typeof FinancePnlRoute
   '/gadget/$id': typeof GadgetIdRoute
   '/gatekeepers/$appId': typeof GatekeepersAppIdRoute
+  '/management/business-pulse': typeof ManagementBusinessPulseRoute
   '/portfolio/business-pulse': typeof PortfolioBusinessPulseRoute
   '/portfolio/new-leads': typeof PortfolioNewLeadsRoute
   '/portfolio/revenue-management': typeof PortfolioRevenueManagementRoute
+  '/property-management/guest-success': typeof PropertyManagementGuestSuccessRoute
+  '/property-management/owner-success': typeof PropertyManagementOwnerSuccessRoute
+  '/property-management/revenue-management': typeof PropertyManagementRevenueManagementRoute
+  '/renovations/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRoutesById {
@@ -233,24 +341,37 @@ export interface FileRoutesById {
   '/connections': typeof ConnectionsRoute
   '/context': typeof ContextRoute
   '/explore': typeof ExploreRoute
+  '/finance': typeof FinanceRoute
   '/gatekeepers': typeof GatekeepersRoute
   '/onboarding': typeof OnboardingRoute
   '/outputs': typeof OutputsRoute
   '/portfolio': typeof PortfolioRoute
   '/profile': typeof ProfileRoute
   '/properties': typeof PropertiesRoute
+  '/property-management': typeof PropertyManagementRoute
   '/providers': typeof ProvidersRoute
+  '/renovations': typeof RenovationsRoute
+  '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/upkeep': typeof UpkeepRoute
   '/workflows': typeof WorkflowsRoute
   '/workspaces': typeof WorkspacesRoute
   '/blueprint/$id': typeof BlueprintIdRoute
+  '/finance_/invoices': typeof FinanceInvoicesRoute
+  '/finance_/pnl': typeof FinancePnlRoute
   '/gadget/$id': typeof GadgetIdRoute
   '/gatekeepers_/$appId': typeof GatekeepersAppIdRoute
+  '/management_/business-pulse': typeof ManagementBusinessPulseRoute
   '/portfolio_/business-pulse': typeof PortfolioBusinessPulseRoute
   '/portfolio_/new-leads': typeof PortfolioNewLeadsRoute
   '/portfolio_/revenue-management': typeof PortfolioRevenueManagementRoute
+  '/property-management_/guest-success': typeof PropertyManagementGuestSuccessRoute
+  '/property-management_/owner-success': typeof PropertyManagementOwnerSuccessRoute
+  '/property-management_/revenue-management': typeof PropertyManagementRevenueManagementRoute
+  '/renovations_/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales_/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep_/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
 export interface FileRouteTypes {
@@ -263,24 +384,37 @@ export interface FileRouteTypes {
     | '/connections'
     | '/context'
     | '/explore'
+    | '/finance'
     | '/gatekeepers'
     | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
     | '/properties'
+    | '/property-management'
     | '/providers'
+    | '/renovations'
+    | '/sales'
     | '/settings'
     | '/signup'
+    | '/upkeep'
     | '/workflows'
     | '/workspaces'
     | '/blueprint/$id'
+    | '/finance/invoices'
+    | '/finance/pnl'
     | '/gadget/$id'
     | '/gatekeepers/$appId'
+    | '/management/business-pulse'
     | '/portfolio/business-pulse'
     | '/portfolio/new-leads'
     | '/portfolio/revenue-management'
+    | '/property-management/guest-success'
+    | '/property-management/owner-success'
+    | '/property-management/revenue-management'
+    | '/renovations/invoice-review'
     | '/sales/new-leads'
+    | '/upkeep/onboarding'
     | '/workspace/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -291,24 +425,37 @@ export interface FileRouteTypes {
     | '/connections'
     | '/context'
     | '/explore'
+    | '/finance'
     | '/gatekeepers'
     | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
     | '/properties'
+    | '/property-management'
     | '/providers'
+    | '/renovations'
+    | '/sales'
     | '/settings'
     | '/signup'
+    | '/upkeep'
     | '/workflows'
     | '/workspaces'
     | '/blueprint/$id'
+    | '/finance/invoices'
+    | '/finance/pnl'
     | '/gadget/$id'
     | '/gatekeepers/$appId'
+    | '/management/business-pulse'
     | '/portfolio/business-pulse'
     | '/portfolio/new-leads'
     | '/portfolio/revenue-management'
+    | '/property-management/guest-success'
+    | '/property-management/owner-success'
+    | '/property-management/revenue-management'
+    | '/renovations/invoice-review'
     | '/sales/new-leads'
+    | '/upkeep/onboarding'
     | '/workspace/$id'
   id:
     | '__root__'
@@ -319,24 +466,37 @@ export interface FileRouteTypes {
     | '/connections'
     | '/context'
     | '/explore'
+    | '/finance'
     | '/gatekeepers'
     | '/onboarding'
     | '/outputs'
     | '/portfolio'
     | '/profile'
     | '/properties'
+    | '/property-management'
     | '/providers'
+    | '/renovations'
+    | '/sales'
     | '/settings'
     | '/signup'
+    | '/upkeep'
     | '/workflows'
     | '/workspaces'
     | '/blueprint/$id'
+    | '/finance_/invoices'
+    | '/finance_/pnl'
     | '/gadget/$id'
     | '/gatekeepers_/$appId'
+    | '/management_/business-pulse'
     | '/portfolio_/business-pulse'
     | '/portfolio_/new-leads'
     | '/portfolio_/revenue-management'
+    | '/property-management_/guest-success'
+    | '/property-management_/owner-success'
+    | '/property-management_/revenue-management'
+    | '/renovations_/invoice-review'
     | '/sales_/new-leads'
+    | '/upkeep_/onboarding'
     | '/workspace/$id'
   fileRoutesById: FileRoutesById
 }
@@ -348,24 +508,37 @@ export interface RootRouteChildren {
   ConnectionsRoute: typeof ConnectionsRoute
   ContextRoute: typeof ContextRoute
   ExploreRoute: typeof ExploreRoute
+  FinanceRoute: typeof FinanceRoute
   GatekeepersRoute: typeof GatekeepersRoute
   OnboardingRoute: typeof OnboardingRoute
   OutputsRoute: typeof OutputsRoute
   PortfolioRoute: typeof PortfolioRoute
   ProfileRoute: typeof ProfileRoute
   PropertiesRoute: typeof PropertiesRoute
+  PropertyManagementRoute: typeof PropertyManagementRoute
   ProvidersRoute: typeof ProvidersRoute
+  RenovationsRoute: typeof RenovationsRoute
+  SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  UpkeepRoute: typeof UpkeepRoute
   WorkflowsRoute: typeof WorkflowsRoute
   WorkspacesRoute: typeof WorkspacesRoute
   BlueprintIdRoute: typeof BlueprintIdRoute
+  FinanceInvoicesRoute: typeof FinanceInvoicesRoute
+  FinancePnlRoute: typeof FinancePnlRoute
   GadgetIdRoute: typeof GadgetIdRoute
   GatekeepersAppIdRoute: typeof GatekeepersAppIdRoute
+  ManagementBusinessPulseRoute: typeof ManagementBusinessPulseRoute
   PortfolioBusinessPulseRoute: typeof PortfolioBusinessPulseRoute
   PortfolioNewLeadsRoute: typeof PortfolioNewLeadsRoute
   PortfolioRevenueManagementRoute: typeof PortfolioRevenueManagementRoute
+  PropertyManagementGuestSuccessRoute: typeof PropertyManagementGuestSuccessRoute
+  PropertyManagementOwnerSuccessRoute: typeof PropertyManagementOwnerSuccessRoute
+  PropertyManagementRevenueManagementRoute: typeof PropertyManagementRevenueManagementRoute
+  RenovationsInvoiceReviewRoute: typeof RenovationsInvoiceReviewRoute
   SalesNewLeadsRoute: typeof SalesNewLeadsRoute
+  UpkeepOnboardingRoute: typeof UpkeepOnboardingRoute
   WorkspaceIdRoute: typeof WorkspaceIdRoute
 }
 
@@ -420,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gatekeepers': {
       id: '/gatekeepers'
       path: '/gatekeepers'
@@ -462,11 +642,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/property-management': {
+      id: '/property-management'
+      path: '/property-management'
+      fullPath: '/property-management'
+      preLoaderRoute: typeof PropertyManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/providers': {
       id: '/providers'
       path: '/providers'
       fullPath: '/providers'
       preLoaderRoute: typeof ProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renovations': {
+      id: '/renovations'
+      path: '/renovations'
+      fullPath: '/renovations'
+      preLoaderRoute: typeof RenovationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales': {
+      id: '/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof SalesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -481,6 +682,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upkeep': {
+      id: '/upkeep'
+      path: '/upkeep'
+      fullPath: '/upkeep'
+      preLoaderRoute: typeof UpkeepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workflows': {
@@ -504,6 +712,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlueprintIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance_/invoices': {
+      id: '/finance_/invoices'
+      path: '/finance/invoices'
+      fullPath: '/finance/invoices'
+      preLoaderRoute: typeof FinanceInvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance_/pnl': {
+      id: '/finance_/pnl'
+      path: '/finance/pnl'
+      fullPath: '/finance/pnl'
+      preLoaderRoute: typeof FinancePnlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gadget/$id': {
       id: '/gadget/$id'
       path: '/gadget/$id'
@@ -516,6 +738,13 @@ declare module '@tanstack/react-router' {
       path: '/gatekeepers/$appId'
       fullPath: '/gatekeepers/$appId'
       preLoaderRoute: typeof GatekeepersAppIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/management_/business-pulse': {
+      id: '/management_/business-pulse'
+      path: '/management/business-pulse'
+      fullPath: '/management/business-pulse'
+      preLoaderRoute: typeof ManagementBusinessPulseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfolio_/business-pulse': {
@@ -539,11 +768,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortfolioRevenueManagementRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/property-management_/guest-success': {
+      id: '/property-management_/guest-success'
+      path: '/property-management/guest-success'
+      fullPath: '/property-management/guest-success'
+      preLoaderRoute: typeof PropertyManagementGuestSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/property-management_/owner-success': {
+      id: '/property-management_/owner-success'
+      path: '/property-management/owner-success'
+      fullPath: '/property-management/owner-success'
+      preLoaderRoute: typeof PropertyManagementOwnerSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/property-management_/revenue-management': {
+      id: '/property-management_/revenue-management'
+      path: '/property-management/revenue-management'
+      fullPath: '/property-management/revenue-management'
+      preLoaderRoute: typeof PropertyManagementRevenueManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renovations_/invoice-review': {
+      id: '/renovations_/invoice-review'
+      path: '/renovations/invoice-review'
+      fullPath: '/renovations/invoice-review'
+      preLoaderRoute: typeof RenovationsInvoiceReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales_/new-leads': {
       id: '/sales_/new-leads'
       path: '/sales/new-leads'
       fullPath: '/sales/new-leads'
       preLoaderRoute: typeof SalesNewLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upkeep_/onboarding': {
+      id: '/upkeep_/onboarding'
+      path: '/upkeep/onboarding'
+      fullPath: '/upkeep/onboarding'
+      preLoaderRoute: typeof UpkeepOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workspace/$id': {
@@ -564,24 +828,38 @@ const rootRouteChildren: RootRouteChildren = {
   ConnectionsRoute: ConnectionsRoute,
   ContextRoute: ContextRoute,
   ExploreRoute: ExploreRoute,
+  FinanceRoute: FinanceRoute,
   GatekeepersRoute: GatekeepersRoute,
   OnboardingRoute: OnboardingRoute,
   OutputsRoute: OutputsRoute,
   PortfolioRoute: PortfolioRoute,
   ProfileRoute: ProfileRoute,
   PropertiesRoute: PropertiesRoute,
+  PropertyManagementRoute: PropertyManagementRoute,
   ProvidersRoute: ProvidersRoute,
+  RenovationsRoute: RenovationsRoute,
+  SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  UpkeepRoute: UpkeepRoute,
   WorkflowsRoute: WorkflowsRoute,
   WorkspacesRoute: WorkspacesRoute,
   BlueprintIdRoute: BlueprintIdRoute,
+  FinanceInvoicesRoute: FinanceInvoicesRoute,
+  FinancePnlRoute: FinancePnlRoute,
   GadgetIdRoute: GadgetIdRoute,
   GatekeepersAppIdRoute: GatekeepersAppIdRoute,
+  ManagementBusinessPulseRoute: ManagementBusinessPulseRoute,
   PortfolioBusinessPulseRoute: PortfolioBusinessPulseRoute,
   PortfolioNewLeadsRoute: PortfolioNewLeadsRoute,
   PortfolioRevenueManagementRoute: PortfolioRevenueManagementRoute,
+  PropertyManagementGuestSuccessRoute: PropertyManagementGuestSuccessRoute,
+  PropertyManagementOwnerSuccessRoute: PropertyManagementOwnerSuccessRoute,
+  PropertyManagementRevenueManagementRoute:
+    PropertyManagementRevenueManagementRoute,
+  RenovationsInvoiceReviewRoute: RenovationsInvoiceReviewRoute,
   SalesNewLeadsRoute: SalesNewLeadsRoute,
+  UpkeepOnboardingRoute: UpkeepOnboardingRoute,
   WorkspaceIdRoute: WorkspaceIdRoute,
 }
 export const routeTree = rootRouteImport

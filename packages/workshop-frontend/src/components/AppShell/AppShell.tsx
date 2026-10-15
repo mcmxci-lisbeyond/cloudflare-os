@@ -9,6 +9,7 @@ import Sidebar from './Sidebar'
 import CommandPalette from './CommandPalette'
 import { OPEN_COMMAND_PALETTE_EVENT } from './commandPaletteBus'
 import { RailConnectionsProvider } from './railConnectionsContext'
+import { RailSidebarProvider } from './railSidebarContext'
 
 const STORAGE_KEY_COLLAPSED = 'gadgets:sidebar-collapsed'
 
@@ -83,6 +84,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RailConnectionsProvider>
+      <RailSidebarProvider>
       <div className="flex h-screen min-h-screen w-screen overflow-hidden bg-kumo-base">
       {/* Desktop sidebar — hidden on mobile in favor of the drawer. */}
       <div className="hidden md:flex">
@@ -134,6 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       </div>
+      </RailSidebarProvider>
     </RailConnectionsProvider>
   )
 }

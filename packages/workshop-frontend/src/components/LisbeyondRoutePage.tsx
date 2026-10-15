@@ -15,6 +15,19 @@ export type LisbeyondProductRoute =
   | 'workflows'
   | 'connections'
   | 'settings'
+  | 'management/business-pulse'
+  | 'finance'
+  | 'finance/invoices'
+  | 'finance/pnl'
+  | 'renovations'
+  | 'renovations/invoice-review'
+  | 'sales'
+  | 'property-management'
+  | 'property-management/owner-success'
+  | 'property-management/guest-success'
+  | 'property-management/revenue-management'
+  | 'upkeep'
+  | 'upkeep/onboarding'
 
 /**
  * Hosts the wrapper-owned Lisbeyond management app at stable employee-facing routes. Cloudflare OS
