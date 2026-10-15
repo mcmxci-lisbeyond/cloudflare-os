@@ -1,25 +1,20 @@
 import { Link } from '@tanstack/react-router'
 import {
-  Buildings,
-  ChartPieSlice,
-  ChatCircleDots,
-  ClipboardText,
   Hexagon,
-  House,
-  Lightning,
   MagnifyingGlass,
   SidebarSimple,
 } from '@phosphor-icons/react'
 import { useSiteName } from '../../ServerConfigContext'
 import SiteLogo from '../SiteLogo'
 import { openCommandPalette } from './commandPaletteBus'
-import SidebarItem from './SidebarItem'
 import {
   SidebarWorkspacesProvider,
   SidebarWorkspacesLists,
 } from './SidebarWorkspaces'
 import SidebarUtilityStrip from './SidebarUtilityStrip'
 import RailConnections from './RailConnections'
+import { RailAdmin, SidebarTeams } from './SidebarTeams'
+import { useRailSidebar } from './railSidebarContext'
 
 /**
  * The persistent left rail. Three pinned regions sandwich a single scrolling region of lists, so
@@ -29,9 +24,9 @@ import RailConnections from './RailConnections'
  * Layout (top → bottom):
  *   • brand row                            pinned
  *   • search                               pinned
- *   • primary Lisbeyond navigation         pinned
- *   • Favorites / Recent workspaces        SCROLLS
- *   • connection status                    pinned
+ *   • team navigation (LIS-307), then Favorites / Recent workspaces   SCROLLS
+ *   • connection status (until the app reports the sidebar)           pinned
+ *   • Admin pop-out (access administrators)                           pinned
  *   • utility strip (theme, settings, avatar) pinned
  */
 export default function Sidebar({
@@ -42,6 +37,7 @@ export default function Sidebar({
   onToggleCollapsed: () => void
 }) {
   const siteName = useSiteName()
+  const { sidebar } = useRailSidebar()
   return (
     <aside
       aria-label="Primary"
@@ -111,58 +107,20 @@ export default function Sidebar({
       </div>
 
       <SidebarWorkspacesProvider>
-        {/* Pinned top stack. shrink-0 keeps it from squishing when the lists below grow. */}
-        <div className="flex shrink-0 flex-col gap-3 pt-3">
-          {/* Primary nav */}
-          <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-2' : 'px-3'}`}>
-            <SidebarItem
-              to="/"
-              label="Home"
-              icon={<House size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/properties"
-              label="Properties"
-              icon={<Buildings size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/portfolio"
-              label="Portfolio"
-              matchPrefix
-              icon={<ChartPieSlice size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/ask-bifana"
-              label="Ask Bifana"
-              icon={<ChatCircleDots size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/onboarding"
-              label="Onboarding"
-              icon={<ClipboardText size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-            <SidebarItem
-              to="/workflows"
-              label="Workflows"
-              icon={<Lightning size={14} weight="regular" />}
-              collapsed={collapsed}
-            />
-          </nav>
-        </div>
-
-        {/* Scrolling middle: only the Favorites / Recent workspaces / Recent blueprints lists.
+        {/* Scrolling middle: the team navigation (LIS-307), then the Favorites / Recent lists.
+            Founders can have many team rows, so the navigation scrolls instead of pinning.
             min-h-0 lets flex children compute scroll height correctly. */}
-        <div className="sidebar-scroll mt-1 min-h-0 flex-1 overflow-y-auto">
-          <SidebarWorkspacesLists collapsed={collapsed} />
+        <div className="sidebar-scroll mt-3 min-h-0 flex-1 overflow-y-auto">
+          <SidebarTeams collapsed={collapsed} />
+          <div className="mt-1">
+            <SidebarWorkspacesLists collapsed={collapsed} />
+          </div>
         </div>
       </SidebarWorkspacesProvider>
 
-      <RailConnections collapsed={collapsed} />
+      {/* Connections moves into the Admin pop-out once the app has reported the sidebar. */}
+      {!sidebar && <RailConnections collapsed={collapsed} />}
+      <RailAdmin collapsed={collapsed} />
       <SidebarUtilityStrip collapsed={collapsed} />
     </aside>
   )

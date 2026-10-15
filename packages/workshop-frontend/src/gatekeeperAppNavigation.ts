@@ -15,9 +15,117 @@ export const GATEKEEPER_APP_ROUTES = {
   workflows: "/workflows",
   connections: "/connections",
   settings: "/settings",
+  // Team sections (LIS-307). A team's own route is its Activity landing page.
+  "management/business-pulse": "/management/business-pulse",
+  finance: "/finance",
+  "finance/invoices": "/finance/invoices",
+  "finance/pnl": "/finance/pnl",
+  renovations: "/renovations",
+  "renovations/invoice-review": "/renovations/invoice-review",
+  sales: "/sales",
+  "property-management": "/property-management",
+  "property-management/owner-success": "/property-management/owner-success",
+  "property-management/guest-success": "/property-management/guest-success",
+  "property-management/revenue-management": "/property-management/revenue-management",
+  upkeep: "/upkeep",
+  "upkeep/onboarding": "/upkeep/onboarding",
 } as const;
 
 export type GatekeeperAppRoute = keyof typeof GATEKEEPER_APP_ROUTES;
+
+/**
+ * The only sidebar the Lisbeyond app may ask for (LIS-307). The host owns ids, order and routes;
+ * the app's report only says which of these to show. Showing an item is never permission: every
+ * page still checks access on the server.
+ */
+export const GATEKEEPER_APP_SIDEBAR = {
+  top: ["home", "ask-bifana", "properties"],
+  sections: {
+    management: { landing: "management/business-pulse", items: { "business-pulse": "management/business-pulse" } },
+    finance: { landing: "finance", items: { "finance-invoices": "finance/invoices", "finance-pnl": "finance/pnl" } },
+    renovations: { landing: "renovations", items: { "renovations-invoice-review": "renovations/invoice-review" } },
+    sales: { landing: "sales", items: { "new-leads": "sales/new-leads" } },
+    "property-management": { landing: "property-management", items: {
+      "owner-success": "property-management/owner-success",
+      "guest-success": "property-management/guest-success",
+      "revenue-management": "property-management/revenue-management",
+    } },
+    upkeep: { landing: "upkeep", items: { onboarding: "upkeep/onboarding" } },
+    admin: { landing: "workflows", items: {
+      "admin-workflows": "workflows",
+      "admin-access": "settings",
+      "admin-connections": "connections",
+    } },
+  },
+} as const satisfies {
+  top: readonly GatekeeperAppRoute[];
+  sections: Record<string, { landing: GatekeeperAppRoute; items: Record<string, GatekeeperAppRoute> }>;
+};
+
+type SidebarSections = typeof GATEKEEPER_APP_SIDEBAR.sections;
+export type GatekeeperAppSidebarTopItem = (typeof GATEKEEPER_APP_SIDEBAR.top)[number];
+export type GatekeeperAppSidebarSectionId = keyof SidebarSections;
+export type GatekeeperAppSidebarItemId = {
+  [Section in GatekeeperAppSidebarSectionId]: keyof SidebarSections[Section]["items"]
+}[GatekeeperAppSidebarSectionId];
+export type GatekeeperAppSidebarSection = {
+  id: GatekeeperAppSidebarSectionId;
+  items: GatekeeperAppSidebarItemId[];
+  open: boolean;
+};
+export type GatekeeperAppSidebar = {
+  access: "active" | "pending" | "suspended" | "not_ready" | "unavailable";
+  top: GatekeeperAppSidebarTopItem[];
+  sections: GatekeeperAppSidebarSection[];
+};
+
+const SIDEBAR_ACCESS = new Set<GatekeeperAppSidebar["access"]>([
+  "active", "pending", "suspended", "not_ready", "unavailable",
+]);
+const MAX_SIDEBAR_ENTRIES = 12;
+
+function sidebarList(value: unknown): unknown[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_SIDEBAR_ENTRIES) {
+    throw new TypeError("Invalid gatekeeper app sidebar report.");
+  }
+  return value;
+}
+
+/**
+ * Validates an untrusted sidebar report from a sandboxed app. Unknown ids are dropped, not
+ * rendered; order and routes come from GATEKEEPER_APP_SIDEBAR, never from the report.
+ */
+export function parseGatekeeperAppSidebar(value: unknown): GatekeeperAppSidebar {
+  if (!isRecord(value) || typeof value.access !== "string"
+    || !SIDEBAR_ACCESS.has(value.access as GatekeeperAppSidebar["access"])) {
+    throw new TypeError("Invalid gatekeeper app sidebar report.");
+  }
+  const top = new Set(sidebarList(value.top));
+  const reported = new Map<string, Record<string, unknown>>();
+  for (const section of sidebarList(value.sections)) {
+    if (isRecord(section) && typeof section.id === "string" && !reported.has(section.id)) {
+      reported.set(section.id, section);
+    }
+  }
+  const sections: GatekeeperAppSidebarSection[] = [];
+  for (const [id, definition] of Object.entries(GATEKEEPER_APP_SIDEBAR.sections) as
+    [GatekeeperAppSidebarSectionId, SidebarSections[GatekeeperAppSidebarSectionId]][]) {
+    const section = reported.get(id);
+    if (!section) continue;
+    const items = new Set(sidebarList(section.items));
+    sections.push({
+      id,
+      items: (Object.keys(definition.items) as GatekeeperAppSidebarItemId[]).filter(item => items.has(item)),
+      open: section.open === true,
+    });
+  }
+  return {
+    access: value.access as GatekeeperAppSidebar["access"],
+    top: GATEKEEPER_APP_SIDEBAR.top.filter(item => top.has(item)),
+    sections,
+  };
+}
 
 export const MAX_GATEKEEPER_APP_CONNECTIONS = 12;
 export const MAX_GATEKEEPER_APP_CONNECTION_TEXT_LENGTH = 40;

@@ -1,6 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import LisbeyondRoutePage from '../components/LisbeyondRoutePage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+// New Leads moved to the Sales section (LIS-307); old links keep working.
 export const Route = createFileRoute('/portfolio_/new-leads')({
-  component: () => <LisbeyondRoutePage route="portfolio/new-leads" title="New Leads" />,
+  beforeLoad: () => {
+    throw redirect({ to: '/sales/new-leads', search: true, hash: true, replace: true })
+  },
+  component: () => null,
 })

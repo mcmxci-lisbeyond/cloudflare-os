@@ -13,9 +13,55 @@ import {
   parsePropertyGuideTarget,
   parseGuideSourceUrl,
   parseGatekeeperAppWorkspaceTarget,
+  parseGatekeeperAppSidebar,
+  GATEKEEPER_APP_SIDEBAR,
 } from "./gatekeeperAppNavigation";
 
 const WORKSPACE_ID = "a".repeat(64);
+
+// LIS-307 failure 9: the sidebar report comes from a sandboxed app and is untrusted.
+describe("parseGatekeeperAppSidebar", () => {
+  it("keeps known ids in the host's order and drops everything else", () => {
+    expect(parseGatekeeperAppSidebar({
+      access: "active",
+      top: ["properties", "home", "evil", "home"],
+      sections: [
+        { id: "sales", items: ["new-leads", "javascript:alert(1)"], open: false },
+        { id: "finance", items: ["finance-pnl", "finance-invoices", "new-leads"], open: true, route: "https://evil.example" },
+        { id: "made-up", items: ["x"], open: true },
+        { id: "finance", items: [], open: false },
+      ],
+    })).toEqual({
+      access: "active",
+      top: ["home", "properties"],
+      sections: [
+        { id: "finance", items: ["finance-invoices", "finance-pnl"], open: true },
+        { id: "sales", items: ["new-leads"], open: false },
+      ],
+    });
+  });
+
+  it("treats anything but a literal true as closed", () => {
+    expect(parseGatekeeperAppSidebar({ access: "active", top: [], sections: [{ id: "upkeep", items: [], open: "yes" }] })
+      .sections).toEqual([{ id: "upkeep", items: [], open: false }]);
+  });
+
+  it("rejects malformed or oversized reports outright", () => {
+    for (const value of [null, [], "active", { access: "admin" }, { access: "active", top: "home" },
+      { access: "active", sections: Array.from({ length: 13 }, () => ({ id: "sales" })) },
+      { access: "active", sections: [{ id: "sales", items: Array.from({ length: 13 }, () => "new-leads") }] }]) {
+      expect(() => parseGatekeeperAppSidebar(value)).toThrow(TypeError);
+    }
+  });
+
+  it("only routes to allowlisted app routes", () => {
+    const routes = new Set(Object.keys(GATEKEEPER_APP_ROUTES));
+    for (const section of Object.values(GATEKEEPER_APP_SIDEBAR.sections)) {
+      expect(routes.has(section.landing)).toBe(true);
+      for (const route of Object.values(section.items)) expect(routes.has(route)).toBe(true);
+    }
+  });
+});
 
 describe("guide navigation targets", () => {
   it("accepts canonical property identity only", () => {

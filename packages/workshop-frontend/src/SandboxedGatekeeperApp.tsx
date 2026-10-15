@@ -30,11 +30,14 @@ import {
   parseWorkflowRouteState,
   type WorkflowRouteState,
   parseGatekeeperAppWorkspaceTarget,
+  parseGatekeeperAppSidebar,
   type GatekeeperAppConnection,
   type GatekeeperAppRoute,
+  type GatekeeperAppSidebar,
   type GatekeeperAppWorkspaceTarget,
 } from './gatekeeperAppNavigation'
 import { useRailConnections } from './components/AppShell/railConnectionsContext'
+import { useOptionalRailSidebar } from './components/AppShell/railSidebarContext'
 import { getStoredSelectedModel, persistSelectedModel } from './modelSelection'
 
 // The content-pane rect, in viewport coordinates, that the app pins its page to while the iframe
@@ -55,6 +58,11 @@ type ResolveWorkspaceTitles = (ids: string[]) => Promise<(string | null)[]>
 type OpenPrompt = (prompt: string) => void
 type OpenAppRoute = (route: GatekeeperAppRoute) => void
 type ReportConnections = (rows: GatekeeperAppConnection[]) => void
+type ReportSidebar = (sidebar: GatekeeperAppSidebar) => void
+// App routes whose URL carries workflow state (workflow, tab, status, item).
+const WORKFLOW_STATE_ROUTES = new Set<string>([
+  "workflows", "finance", "finance/invoices", "renovations", "renovations/invoice-review",
+])
 type GetChatModelState = () => Promise<GatekeeperChatModelState>
 type SetChatModel = (modelId: string | null) => Promise<GatekeeperChatModelState>
 type SetPropertyRouteState = (
@@ -119,6 +127,7 @@ class GatekeeperAppHostImpl extends RpcTarget {
   readonly #guideNavigationEnabled: boolean
   readonly #resolveWorkspaceTitles: ResolveWorkspaceTitles
   readonly #reportConnections: ReportConnections
+  readonly #reportSidebar: ReportSidebar | null
   readonly #chatModelsEnabled: boolean
   readonly #getChatModelState: GetChatModelState
   readonly #setChatModel: SetChatModel
@@ -155,8 +164,10 @@ class GatekeeperAppHostImpl extends RpcTarget {
     setPropertyRouteState: SetPropertyRouteState,
     openPropertyGuide: (pNumber: string) => void,
     guideNavigationEnabled: boolean,
+    reportSidebar: ReportSidebar | null = null,
   ) {
     super()
+    this.#reportSidebar = reportSidebar
     this.#theme = theme
     const { capability: ui, dispose } = createRateLimitedCapability(capability, {
       maxConcurrency: 8,
@@ -270,11 +281,11 @@ class GatekeeperAppHostImpl extends RpcTarget {
   }
 
   getWorkflowRouteState(): WorkflowRouteState {
-    return this.getAppRoute() === "workflows" ? this.#getWorkflowRouteState() : {}
+    return WORKFLOW_STATE_ROUTES.has(this.getAppRoute() ?? "") ? this.#getWorkflowRouteState() : {}
   }
 
   setWorkflowRouteState(value: unknown): void {
-    if (this.getAppRoute() !== "workflows") throw new TypeError("Workflow navigation is unavailable here.")
+    if (!WORKFLOW_STATE_ROUTES.has(this.getAppRoute() ?? "")) throw new TypeError("Workflow navigation is unavailable here.")
     this.#setWorkflowRouteState(parseWorkflowRouteState(value))
   }
 
@@ -295,6 +306,13 @@ class GatekeeperAppHostImpl extends RpcTarget {
 
   reportConnections(rows: unknown): void {
     this.#reportConnections(parseGatekeeperAppConnections(rows))
+  }
+
+  // Which sidebar sections the employee may see (LIS-307). Untrusted: validated against the host's
+  // own sidebar definition. Display only; every page keeps its server-side check.
+  reportSidebar(value: unknown): void {
+    if (!this.#reportSidebar) throw new TypeError('Sidebar reports are not available for this app.')
+    this.#reportSidebar(parseGatekeeperAppSidebar(value))
   }
 
   getChatModelState(): Promise<GatekeeperChatModelState> {
@@ -408,13 +426,17 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   const location = useLocation()
   const routeStateRef = useRef<WorkflowRouteState>({})
   routeStateRef.current = parseWorkflowRouteState(location.search)
+  const appRouteRef = useRef(appRoute)
+  appRouteRef.current = appRoute
   const setWorkflowRouteState = useCallback((state: WorkflowRouteState) => {
-    void navigate({ to: "/workflows", search: state, replace: true })
+    // Invoice tabs keep the employee on the page they opened (/finance/invoices, LIS-307).
+    const route = appRouteRef.current
+    const to = route && WORKFLOW_STATE_ROUTES.has(route)
+      ? GATEKEEPER_APP_ROUTES[route as GatekeeperAppRoute] : "/workflows"
+    void navigate({ to, search: state, replace: true })
   }, [navigate])
   const propertyRouteStateRef = useRef<GatekeeperAppPropertyRouteState>({})
   propertyRouteStateRef.current = parsePropertyRouteState(location.search)
-  const appRouteRef = useRef(appRoute)
-  appRouteRef.current = appRoute
   const propertyNavigationPending = useRef(false)
   const [navigationCommit, setNavigationCommit] = useState(0)
   const setPropertyRouteState = useCallback<SetPropertyRouteState>((state, mode) => {
@@ -436,6 +458,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   }, [navigate])
   const { authenticatedApi } = useAuthenticatedApi()
   const { reportConnections } = useRailConnections()
+  const reportSidebar = useOptionalRailSidebar()?.reportSidebar ?? null
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const sessionRef = useRef<{ [Symbol.dispose]?(): void } | null>(null)
   const hostRef = useRef<GatekeeperAppHostImpl | null>(null)
@@ -599,6 +622,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
         setPropertyRouteState,
         openPropertyGuide,
         gatekeeperVendorId === "lisbeyond",
+        connectionsEnabled && reportSidebar ? reportSidebar : null,
       )
       hostRef.current = host
       sessionRef.current = newMessagePortRpcSession(port, host)
@@ -631,7 +655,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     }
     // Re-establish the session if either the HTML or the `ui` capability changes, so a new frame
     // carrying a fresh stub (even with identical HTML) never keeps talking through the stale one.
-  }, [acceptConnections, connectionsEnabled, frame.iframeHtml, frame.ui,
+  }, [acceptConnections, connectionsEnabled, reportSidebar, frame.iframeHtml, frame.ui,
       gatekeeperVendorId, loadChatModelState, openAppRoute, openPropertyGuide, openPrompt, openTarget, present,
       setChatModel, setPropertyRouteState, setWorkflowRouteState,
       resolveWorkspaceTitles, setOverlayPhase])

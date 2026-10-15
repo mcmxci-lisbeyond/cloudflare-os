@@ -1,10 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import LisbeyondRoutePage from '../components/LisbeyondRoutePage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+// Onboarding moved to Upkeep › Onboarding & QA (LIS-307); old links keep working.
 export const Route = createFileRoute('/onboarding')({
-  component: OnboardingPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/upkeep/onboarding', search: true, hash: true, replace: true })
+  },
+  component: () => null,
 })
-
-function OnboardingPage() {
-  return <LisbeyondRoutePage route="onboarding" title="Onboarding" />
-}
