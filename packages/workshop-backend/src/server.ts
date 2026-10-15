@@ -25,13 +25,19 @@ import { ExternalMessageGateway } from "./external-message-gateway";
 import { RpcStub as NativeRpcStub } from "cloudflare:workers";
 import { recordAnalytics } from "./analytics";
 import { handleClientErrorRequest } from "./client-errors.js";
-import { verifyCfAccessJwt } from "./access.js";
+import { hasFreshAccessKeys, verifyCfAccessJwt } from "./access.js";
 import { resolveUiFeatureFlags } from "./feature-flags";
 import { serveSiteLogo, SITE_LOGO_PATH } from "./site-logo.js";
 import { createWorkshopLogger } from "./observability";
 import { wrapDoStubForTelemetry } from "./do-telemetry";
 
 const logger = createWorkshopLogger("workshop.server");
+
+// Startup timing for WebSocket API sessions (LIS-301): a new socket took 0.4-0.7 s to open in
+// production while an HTTP call to the same path took ~0.1 s. Date.now() only advances across I/O
+// in Workers, so these durations measure waits (key fetches, platform work), not CPU.
+const isolateLoadedAt = Date.now();
+let apiRequestsInIsolate = 0;
 
 // Set once we've asked the AdminSettings DO to install the bundled format blueprints (see the
 // fetch handler), so later requests skip the call. The DO holds the real answer.
@@ -824,6 +830,10 @@ export default {
     }
 
     if (url.pathname === "/api") {
+      const requestInIsolate = ++apiRequestsInIsolate;
+      const isolateAgeMs = Date.now() - isolateLoadedAt;
+      const accessKeysFresh = hasFreshAccessKeys(env);
+      let verifyMs: number | undefined;
       // Make sure the bundled format blueprints are installed. The AdminSettings DO doesn't wake
       // merely because someone deployed, so the install needs a trigger; hanging it off API
       // traffic means a fresh deployment is provisioned by its first visitor. Fire-and-forget,
@@ -854,7 +864,9 @@ export default {
           return new Response("Cross-origin API access not allowed.", { status: 403 });
         }
 
+        const verifyStartedAt = Date.now();
         const payload = await verifyCfAccessJwt(req, env);
+        verifyMs = Date.now() - verifyStartedAt;
         if (!payload) return new Response("Invalid CF access JWT.", { status: 403 });
 
         if (!payload.email) {
@@ -872,6 +884,17 @@ export default {
         logger.warn("aborting api session", { event: "session.abort", error: reason });
         abortController.abort(reason);
       };
+
+      if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
+        logger.info("api websocket accepted", {
+          event: "api.session.accept",
+          requestInIsolate,
+          isolateAgeMs,
+          accessKeysFresh,
+          verifyMs,
+          colo: (req.cf as { colo?: string } | undefined)?.colo,
+        });
+      }
 
       return await newWorkersRpcResponse(req,
           new PublicApiImpl(ctx, env, abortSession, accessPayload),

@@ -1,0 +1,4 @@
+# Build output under /assets/ is content-hashed, so a file never changes under the same name.
+# Without this, every reload revalidates the shell's scripts and styles (LIS-301).
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

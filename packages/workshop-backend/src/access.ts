@@ -25,6 +25,11 @@ async function verifyToken(token: string, env: CfAccessEnv): Promise<JWTPayload>
   })).payload;
 }
 
+/** Whether this isolate already holds fresh Access signing keys (for startup timing logs, LIS-301). */
+export function hasFreshAccessKeys(env: CfAccessEnv): boolean {
+  return Boolean(env.CF_ACCESS_ISS && remoteJwkSets.get(env.CF_ACCESS_ISS)?.fresh);
+}
+
 /** Returns verified Cloudflare Access claims, or null when the assertion cannot be trusted. */
 export async function verifyCfAccessJwt(
     request: Request,
