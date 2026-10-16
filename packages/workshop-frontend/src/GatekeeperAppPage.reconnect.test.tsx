@@ -17,6 +17,8 @@
 //    repeat). It must fail as before.
 // 9. The untrusted frame can pause or redirect its own capability over RPC.
 // 10. Calls queued while the connection is down bypass the frame's rate limit when they are sent.
+// 11. After reopening fails once, the automatic retry brings back the old frame on the closed
+//     connection, so the app's first calls fail and it is stuck until a manual reload.
 
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -62,7 +64,8 @@ class FakeConnection {
 }
 
 type AppCalls = { whereAmI(label: string): Promise<string>; slowWrite(label: string): Promise<string> };
-type Host = { ui: AppCalls; holdCapability?: () => void; replaceCapability?: (next: unknown) => void };
+// The hold/replace names the frame would have to guess if they were string-keyed.
+type Host = { ui: AppCalls; holdCapability(): void; replaceCapability(next: string): void };
 
 let session: { api: ReturnType<typeof sessionApi> };
 function sessionApi(connection: FakeConnection, viewer: string | Error = "bram@lisbeyond.com", html = HTML) {
@@ -176,10 +179,31 @@ describe("GatekeeperAppPage across a reconnect", () => {
     expect(container.querySelector("iframe")).toBeNull();
   });
 
+  it("recovers with a working frame when the first reopen fails", async () => {
+    const one = new FakeConnection("one");
+    await mount(one);
+    host![Symbol.dispose]();
+    one.cut();
+    const two = new FakeConnection("two");
+    const flaky = sessionApi(two);
+    flaky.getGatekeeperApp
+      .mockRejectedValueOnce(new Error("Peer closed WebSocket: 1006"))
+      .mockImplementationOnce(() => new Promise(resolve => setTimeout(
+        () => resolve({ iframeHtml: HTML, ui: two } as unknown as GatekeeperUiFrame), 50)));
+    await reconnect(flaky);
+    await vi.waitFor(() => expect(flaky.getGatekeeperApp).toHaveBeenCalledTimes(2), { timeout: 3000 });
+    await vi.waitFor(() => expect(container.querySelector("iframe")).not.toBeNull());
+    const iframe = container.querySelector("iframe")!;
+    const { port1, port2 } = new MessageChannel();
+    host = newMessagePortRpcSession<Host>(port1);
+    window.dispatchEvent(new MessageEvent("message", { data: { type: "handshake" }, origin: "null", source: iframe.contentWindow, ports: [port2] }));
+    await expect(host.ui.whereAmI("first-load")).resolves.toBe("two:first-load");
+  });
+
   it("does not let the frame pause or redirect its own capability", async () => {
     await mount(new FakeConnection("one"));
-    await expect(Promise.resolve(host!.holdCapability?.())).rejects.toThrow();
-    await expect(Promise.resolve(host!.replaceCapability?.({}))).rejects.toThrow();
+    await expect(host!.holdCapability()).rejects.toThrow();
+    await expect(host!.replaceCapability("evil")).rejects.toThrow();
     await expect(host!.ui.whereAmI("still-mine")).resolves.toBe("one:still-mine");
   });
 

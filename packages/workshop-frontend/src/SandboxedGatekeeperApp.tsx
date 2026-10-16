@@ -599,6 +599,9 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   // The gatekeeper capability is `any`: its method shape is gatekeeper-defined and opaque to us.
   const capabilityRef = useRef<any>(null)
   capabilityRef.current = frame.ui
+  // Set when the connection behind `frame.ui` drops, so a handshake that arrives afterwards still
+  // holds the app's calls until the replacement capability arrives.
+  const brokenUiRef = useRef<unknown>(null)
 
   useEffect(() => {
     connectedRef.current = false
@@ -641,6 +644,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
         gatekeeperVendorId === "lisbeyond",
         connectionsEnabled && reportSidebar ? reportSidebar : null,
       )
+      if (brokenUiRef.current === capabilityRef.current) host[HOLD_CAPABILITY]()
       hostRef.current = host
       sessionRef.current = newMessagePortRpcSession(port, host)
       connectedRef.current = true
@@ -684,6 +688,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     const ui = frame.ui as { onRpcBroken?(callback: (error: unknown) => void): void }
     hostRef.current?.[REPLACE_CAPABILITY](frame.ui)
     ui.onRpcBroken?.(() => {
+      brokenUiRef.current = frame.ui
       if (capabilityRef.current === frame.ui) hostRef.current?.[HOLD_CAPABILITY]()
     })
   }, [frame.ui])

@@ -69,6 +69,9 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
       .then(([frame, viewer]) => {
         if (!frame) {
           if (!cancelled) {
+            // The error screen unmounts the iframe; drop the old frame so a retry never brings it
+            // back on the closed connection.
+            setState(null)
             setError({ detail: 'This app is not available on this deployment.', transient: false })
           }
           return
@@ -78,6 +81,9 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
           return
         }
         setAutomaticRetries(0)
+        // Reusing the frame keeps references the app took from the old `ui`. That is safe for
+        // capabilities that return plain data (Lisbeyond's does); one that hands the app stubs or
+        // registers callbacks would leave them pointing at the closed session.
         const reuse = shown !== null && viewer !== null && shown.viewer === viewer &&
           shown.frame.iframeHtml === frame.iframeHtml
         setState({
@@ -91,6 +97,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
           gatekeeperVendorId: appId,
         })
         if (!cancelled) {
+          setState(null)
           setError({ detail: String(err), transient: isTransientConnectionError(err) })
         }
       })
