@@ -13,7 +13,7 @@ import type {
   GatekeeperChatModelState,
 } from '@gadgets/workshop-shared/theme'
 import { isHexColor } from '@gadgets/workshop-shared/api'
-import { createRateLimitedCapability } from './rateLimitedCapability'
+import { createRateLimitedCapability, type RateLimitedCapability } from './rateLimitedCapability'
 import { useTheme } from './ThemeContext'
 import { useServerConfig } from './ServerConfigContext'
 import { forwardTrustedFrameError } from './errorReporting'
@@ -112,10 +112,14 @@ function iframeStyleForOverlay(overlay: OverlayState): CSSProperties {
 // RPC session. The app uses `ui` to reach the gatekeeper's own capability, which Workshop relays and
 // rate-limits. `setPresenting` stays in Workshop and only grows/restores the iframe's layout.
 const UPDATE_NAVIGATION = Symbol("updateNavigation")
+// Symbol-keyed, like UPDATE_NAVIGATION, so the untrusted frame cannot call them over RPC: only the
+// host page may pause the app's calls or point them at a new connection (LIS-301).
+const HOLD_CAPABILITY = Symbol("holdCapability")
+const REPLACE_CAPABILITY = Symbol("replaceCapability")
 
 class GatekeeperAppHostImpl extends RpcTarget {
   readonly #ui: RpcStub<RpcTarget>
-  readonly #disposeRateLimiter: () => void
+  readonly #rateLimiter: RateLimitedCapability
   readonly #present: PresentController
   readonly #openTarget: OpenTarget
   readonly #openPrompt: OpenPrompt
@@ -169,15 +173,14 @@ class GatekeeperAppHostImpl extends RpcTarget {
     super()
     this.#reportSidebar = reportSidebar
     this.#theme = theme
-    const { capability: ui, dispose } = createRateLimitedCapability(capability, {
+    this.#rateLimiter = createRateLimitedCapability(capability, {
       maxConcurrency: 8,
       maxCallsPerMinute: 600,
       maxPendingCalls: 128,
       onRateLimit: 'throttle',
       label: 'Gatekeeper app',
     })
-    this.#ui = ui
-    this.#disposeRateLimiter = dispose
+    this.#ui = this.#rateLimiter.capability
     this.#present = present
     this.#openTarget = openTarget
     this.#openPrompt = openPrompt
@@ -198,6 +201,16 @@ class GatekeeperAppHostImpl extends RpcTarget {
 
   get ui(): RpcStub<RpcTarget> {
     return this.#ui
+  }
+
+  // The connection behind the gatekeeper capability dropped: queue the app's calls until a
+  // reconnect supplies a new capability, instead of failing them or reloading the frame.
+  [HOLD_CAPABILITY](): void {
+    this.#rateLimiter.hold()
+  }
+
+  [REPLACE_CAPABILITY](capability: any): void {
+    this.#rateLimiter.replace(capability)
   }
 
   // Navigate to a workspace the app knows about. The IDs are validated here because the app is
@@ -387,7 +400,7 @@ class GatekeeperAppHostImpl extends RpcTarget {
   dispose() {
     this.#navigationReceiver?.[Symbol.dispose]?.()
     this.#navigationReceiver = null
-    this.#disposeRateLimiter()
+    this.#rateLimiter.dispose()
     this.#themeReceiver?.[Symbol.dispose]?.()
     this.#themeReceiver = null
     if (this.#frameId !== null) {
@@ -457,6 +470,10 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     void navigate({ to: "/properties", search: state, replace: true })
   }, [navigate])
   const { authenticatedApi } = useAuthenticatedApi()
+  // Read through a ref so a reconnect (a new authenticatedApi) does not tear down the frame's
+  // session: the host's callbacks always use the live connection (LIS-301).
+  const apiRef = useRef(authenticatedApi)
+  apiRef.current = authenticatedApi
   const { reportConnections } = useRailConnections()
   const reportSidebar = useOptionalRailSidebar()?.reportSidebar ?? null
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -501,15 +518,15 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
   }, [connectionsEnabled, reportConnections])
 
   const loadChatModelState = useCallback<GetChatModelState>(async () => {
-    const models = (await authenticatedApi.listModels()).filter(model => model.id === "gpt-6-luna")
+    const models = (await apiRef.current.listModels()).filter(model => model.id === "gpt-6-luna")
     return {
       models: models.map(({ id, name }) => ({ id, name })),
       selectedModelId: getStoredSelectedModel(models),
     }
-  }, [authenticatedApi])
+  }, [])
 
   const setChatModel = useCallback<SetChatModel>(async (modelId) => {
-    const models = (await authenticatedApi.listModels()).filter(model => model.id === "gpt-6-luna")
+    const models = (await apiRef.current.listModels()).filter(model => model.id === "gpt-6-luna")
     if (modelId !== "gpt-6-luna" || !models.some((model) => model.id === modelId)) {
       throw new TypeError('Invalid chat model selection.')
     }
@@ -518,7 +535,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
       models: models.map(({ id, name }) => ({ id, name })),
       selectedModelId: modelId,
     }
-  }, [authenticatedApi])
+  }, [])
 
   const setOverlayPhase = useCallback((next: OverlayState) => {
     if (overlayRef.current === next) return
@@ -557,7 +574,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     if (!entry || Date.now() - entry.at >= WORKSPACE_TITLES_TTL_MS) {
       entry = {
         at: Date.now(),
-        titles: authenticatedApi.listGadgets()
+        titles: apiRef.current.listGadgets()
           .then((gadgets) => new Map(gadgets.map((gadget) => [gadget.id, gadget.title]))),
       }
       titlesRef.current = entry
@@ -569,7 +586,7 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
     }
     const titles = await entry.titles
     return ids.map((id) => titles.get(id) ?? null)
-  }, [authenticatedApi])
+  }, [])
   const openPrompt = useCallback<OpenPrompt>((prompt) => {
     navigate({ to: '/ask-bifana', search: { prompt } })
   }, [navigate])
@@ -653,12 +670,23 @@ export default function SandboxedGatekeeperApp({ frame, gatekeeperVendorId, appR
       hostRef.current = null
       setOverlayPhase(null)
     }
-    // Re-establish the session if either the HTML or the `ui` capability changes, so a new frame
-    // carrying a fresh stub (even with identical HTML) never keeps talking through the stale one.
-  }, [acceptConnections, connectionsEnabled, reportSidebar, frame.iframeHtml, frame.ui,
+    // Re-establish the session if the HTML changes. A new `ui` for the same HTML is a reconnect;
+    // the effect below points the live session at it, so the app keeps its page and state.
+  }, [acceptConnections, connectionsEnabled, reportSidebar, frame.iframeHtml,
       gatekeeperVendorId, loadChatModelState, openAppRoute, openPropertyGuide, openPrompt, openTarget, present,
       setChatModel, setPropertyRouteState, setWorkflowRouteState,
       resolveWorkspaceTitles, setOverlayPhase])
+
+  // After a reconnect GatekeeperAppPage keeps this iframe and hands it the new session's `ui`
+  // (LIS-301). The app's calls go to the new capability, never the stale one; while the old
+  // connection is down they wait instead of failing.
+  useEffect(() => {
+    const ui = frame.ui as { onRpcBroken?(callback: (error: unknown) => void): void }
+    hostRef.current?.[REPLACE_CAPABILITY](frame.ui)
+    ui.onRpcBroken?.(() => {
+      if (capabilityRef.current === frame.ui) hostRef.current?.[HOLD_CAPABILITY]()
+    })
+  }, [frame.ui])
 
   // URL changes update the existing MessagePort session, including browser Back/Forward.
   const navigationKey = JSON.stringify([appRoute, propertyRouteStateRef.current, routeStateRef.current])

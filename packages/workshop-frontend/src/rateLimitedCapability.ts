@@ -20,14 +20,28 @@ export type RateLimitOptions = {
   label: string
 }
 
+export type RateLimitedCapability = {
+  capability: any
+  /**
+   * Hold new calls because the connection behind the capability has gone; they wait in the queue
+   * (still bounded by `maxPendingCalls`) until `replace` supplies the successor. Calls already
+   * started are not retried: they may have reached the server, and a retry could repeat a write.
+   */
+  hold: () => void
+  /** Send queued and future calls to `next`, keeping the rate-limit window and backlog. */
+  replace: (next: any) => void
+  /** Cancels any pending resume timer and rejects calls still waiting in the queue. */
+  dispose: () => void
+}
+
 /**
- * Returns the rate-limited proxy plus a `dispose` that cancels any pending resume timer (otherwise it
- * could fire after the session is torn down). `dispose` is a no-op in `reject` mode (no timer).
+ * Returns the rate-limited proxy plus controls. `dispose` cancels any pending resume timer
+ * (otherwise it could fire after the session is torn down) and settles queued calls.
  */
 export function createRateLimitedCapability(
   capability: any,
   options: RateLimitOptions,
-): { capability: any; dispose: () => void } {
+): RateLimitedCapability {
   type QueuedCall = {
     method: string
     args: unknown[]
@@ -38,6 +52,9 @@ export function createRateLimitedCapability(
   const startedCalls: number[] = []
   const queue: QueuedCall[] = []
   let inFlight = 0
+  let target = capability
+  let held = false
+  let disposed = false
   let resumeTimer: ReturnType<typeof setTimeout> | null = null
 
   const pruneCallWindow = () => {
@@ -46,6 +63,7 @@ export function createRateLimitedCapability(
   }
 
   const drain = () => {
+    if (held || disposed) return
     pruneCallWindow()
     while (inFlight < options.maxConcurrency && queue.length > 0) {
       if (startedCalls.length >= options.maxCallsPerMinute) {
@@ -62,14 +80,16 @@ export function createRateLimitedCapability(
         break
       }
       const call = queue.shift()!
-      if (typeof capability?.[call.method] !== 'function') {
+      if (typeof target?.[call.method] !== 'function') {
         call.reject(new Error(`${options.label} method is not available: ${call.method}`))
         continue
       }
       startedCalls.push(Date.now())
       inFlight++
       Promise.resolve()
-        .then(() => capability[call.method](...call.args))
+        // Read `target` when the call is sent, so one queued just before a reconnect uses the new
+        // capability rather than the closed one.
+        .then(() => target[call.method](...call.args))
         .then(call.resolve, call.reject)
         .finally(() => {
           inFlight--
@@ -84,6 +104,10 @@ export function createRateLimitedCapability(
       if (property === Symbol.dispose) return undefined
       if (typeof property !== 'string') return undefined
       return (...args: unknown[]) => new Promise((resolve, reject) => {
+        if (disposed) {
+          reject(new Error(`${options.label} was closed.`))
+          return
+        }
         if (queue.length + inFlight >= options.maxPendingCalls) {
           reject(new Error(`${options.label} has too many pending requests.`))
           return
@@ -96,11 +120,19 @@ export function createRateLimitedCapability(
 
   return {
     capability: proxy,
+    hold: () => { held = true },
+    replace: (next: any) => {
+      target = next
+      held = false
+      drain()
+    },
     dispose: () => {
+      disposed = true
       if (resumeTimer !== null) {
         clearTimeout(resumeTimer)
         resumeTimer = null
       }
+      for (const call of queue.splice(0)) call.reject(new Error(`${options.label} was closed.`))
     },
   }
 }

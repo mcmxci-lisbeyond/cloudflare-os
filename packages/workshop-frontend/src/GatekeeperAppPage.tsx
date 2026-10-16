@@ -11,6 +11,18 @@ export function isTransientConnectionError(error: unknown): boolean {
   return /peer closed websocket|websocket.*1006|connection.*closed/i.test(message)
 }
 
+type ShownFrame = {
+  frame: GatekeeperUiFrame
+  appId: string
+  // Who the frame was opened for; null when it could not be confirmed.
+  viewer: string | null
+  generation: number
+}
+
+function viewerKey(info: { type: string, id: string }): string {
+  return `${info.type}:${info.id}`
+}
+
 // The frame's `ui` is an RPC stub at runtime; dispose it to release the server-side capability.
 function disposeFrame(frame: GatekeeperUiFrame | null) {
   (frame?.ui as { [Symbol.dispose]?(): void } | undefined)?.[Symbol.dispose]?.()
@@ -28,19 +40,33 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
   // Wrap the frame in an object: it holds a `ui` RPC stub, and we never want useState's setter to
   // treat a stored value as an updater function.
   const generation = useRef(0)
-  const [state, setState] = useState<{ frame: GatekeeperUiFrame; api: typeof authenticatedApi; appId: string; generation: number } | null>(null)
+  const [state, setState] = useState<ShownFrame | null>(null)
+  const shownRef = useRef<ShownFrame | null>(null)
+  shownRef.current = state
   const [error, setError] = useState<{ detail: string, transient: boolean } | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [automaticRetries, setAutomaticRetries] = useState(0)
 
+  // Release each frame's server-side capability once it is no longer the one shown.
+  useEffect(() => {
+    const frame = state?.frame ?? null
+    return () => disposeFrame(frame)
+  }, [state?.frame])
+
   useEffect(() => {
     let cancelled = false
-    let acquired: GatekeeperUiFrame | null = null
     setError(null)
-    setState(null)
-    authenticatedApi
-      .getGatekeeperApp(appId)
-      .then((frame) => {
+    // A dropped connection reconnects with a new `authenticatedApi` (LIS-301). Keep the current
+    // frame on screen while the new session opens the app again, and keep its iframe (with the
+    // employee's page, scroll and form state) only when the app, its HTML and the signed-in
+    // employee are all unchanged. Anything else, including an unknown identity, starts afresh.
+    const shown = shownRef.current?.appId === appId ? shownRef.current : null
+    if (!shown) setState(null)
+    Promise.all([
+      authenticatedApi.getGatekeeperApp(appId),
+      authenticatedApi.whoami().then(viewerKey, () => null),
+    ])
+      .then(([frame, viewer]) => {
         if (!frame) {
           if (!cancelled) {
             setError({ detail: 'This app is not available on this deployment.', transient: false })
@@ -51,9 +77,13 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
           disposeFrame(frame)
           return
         }
-        acquired = frame
         setAutomaticRetries(0)
-        setState({ frame, api: authenticatedApi, appId, generation: ++generation.current })
+        const reuse = shown !== null && viewer !== null && shown.viewer === viewer &&
+          shown.frame.iframeHtml === frame.iframeHtml
+        setState({
+          frame, appId, viewer,
+          generation: reuse ? shown.generation : ++generation.current,
+        })
       })
       .catch((err) => {
         console.error('Failed to load gatekeeper app:', err)
@@ -66,7 +96,6 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
       })
     return () => {
       cancelled = true
-      disposeFrame(acquired)
     }
   }, [authenticatedApi, appId, attempt])
 
@@ -106,7 +135,7 @@ export default function GatekeeperAppPage({ appId, appRoute = null }: {
       </div>
     )
   }
-  if (!state || state.api !== authenticatedApi || state.appId !== appId) {
+  if (!state || state.appId !== appId) {
     return <div className="px-4 py-16 text-center text-sm text-kumo-subtle">Loading…</div>
   }
 
