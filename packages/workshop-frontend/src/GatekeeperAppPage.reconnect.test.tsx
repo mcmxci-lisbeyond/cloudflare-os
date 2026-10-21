@@ -17,6 +17,8 @@
 //    repeat). It must fail as before.
 // 9. The untrusted frame can pause or redirect its own capability over RPC.
 // 10. Calls queued while the connection is down bypass the frame's rate limit when they are sent.
+// 12. Two sessions whose whoami lacks a user id (or is not a user) count as the same employee, so
+//     the previous identity's frame and data are kept (found by the wrapper's navigation E2E).
 // 11. After reopening fails once, the automatic retry brings back the old frame on the closed
 //     connection, so the app's first calls fail and it is stuck until a manual reload.
 
@@ -68,11 +70,12 @@ type AppCalls = { whereAmI(label: string): Promise<string>; slowWrite(label: str
 type Host = { ui: AppCalls; holdCapability(): void; replaceCapability(next: string): void };
 
 let session: { api: ReturnType<typeof sessionApi> };
-function sessionApi(connection: FakeConnection, viewer: string | Error = "bram@lisbeyond.com", html = HTML) {
+function sessionApi(connection: FakeConnection, viewer: string | Error | object = "bram@lisbeyond.com", html = HTML) {
   return {
     getGatekeeperApp: vi.fn(async () => ({ iframeHtml: html, ui: connection }) as unknown as GatekeeperUiFrame),
     whoami: vi.fn(async () => {
       if (viewer instanceof Error) throw viewer;
+      if (typeof viewer === "object") return viewer;
       return { type: "user", id: viewer, name: "Bram" };
     }),
     listGadgets: vi.fn(async () => []),
@@ -97,8 +100,8 @@ describe("GatekeeperAppPage across a reconnect", () => {
     vi.restoreAllMocks();
   });
 
-  async function mount(first: FakeConnection) {
-    session = { api: sessionApi(first) };
+  async function mount(first: FakeConnection, viewer: string | object = "bram@lisbeyond.com") {
+    session = { api: sessionApi(first, viewer) };
     function Page() {
       const [, setTick] = useState(0);
       rerender = () => setTick(value => value + 1);
@@ -157,6 +160,8 @@ describe("GatekeeperAppPage across a reconnect", () => {
     ["another employee", "francisco@lisbeyond.com", HTML],
     ["an identity that cannot be confirmed", new Error("whoami failed"), HTML],
     ["new frame HTML", "bram@lisbeyond.com", "<!doctype html><title>Lisbeyond OS v2</title>"],
+    ["a whoami without an id", { name: "Fixture employee" }, HTML],
+    ["a non-user actor", { type: "gadget", id: "bram@lisbeyond.com", name: "Daily Brief" }, HTML],
   ])("starts a fresh frame for %s", async (_case, viewer, html) => {
     const one = new FakeConnection("one");
     const iframe = await mount(one);
@@ -164,6 +169,14 @@ describe("GatekeeperAppPage across a reconnect", () => {
     await reconnect(sessionApi(new FakeConnection("two"), viewer, html));
     await vi.waitFor(() => expect(container.querySelector("iframe")).not.toBe(iframe));
     expect(container.querySelector("iframe")).not.toBeNull();
+  });
+
+  it("starts a fresh frame when neither session names its employee", async () => {
+    const one = new FakeConnection("one");
+    const iframe = await mount(one, { name: "Fixture employee" });
+    one.cut();
+    await reconnect(sessionApi(new FakeConnection("two"), { name: "Fixture employee" }));
+    await vi.waitFor(() => expect(container.querySelector("iframe")).not.toBe(iframe));
   });
 
   it("rejects calls still waiting when reopening the app fails", async () => {
