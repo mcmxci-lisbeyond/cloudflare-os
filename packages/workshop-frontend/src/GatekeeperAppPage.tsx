@@ -19,8 +19,11 @@ type ShownFrame = {
   generation: number
 }
 
-function viewerKey(info: { type: string, id: string }): string {
-  return `${info.type}:${info.id}`
+// Only a confirmed user account with an id can keep a frame across a reconnect. Anything else
+// (another actor type, a missing or empty id) yields null, which never matches, so the frame and
+// the data it shows start afresh: an unknown identity must not inherit the previous one's view.
+function viewerKey(info: { type?: unknown, id?: unknown } | null | undefined): string | null {
+  return info?.type === 'user' && typeof info.id === 'string' && info.id !== '' ? `user:${info.id}` : null
 }
 
 // The frame's `ui` is an RPC stub at runtime; dispose it to release the server-side capability.
