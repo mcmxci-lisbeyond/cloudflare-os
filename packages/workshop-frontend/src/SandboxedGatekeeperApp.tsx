@@ -59,9 +59,11 @@ type OpenPrompt = (prompt: string) => void
 type OpenAppRoute = (route: GatekeeperAppRoute) => void
 type ReportConnections = (rows: GatekeeperAppConnection[]) => void
 type ReportSidebar = (sidebar: GatekeeperAppSidebar) => void
-// App routes whose URL carries workflow state (workflow, tab, status, item).
+// App routes whose URL carries workflow state (workflow, tab, status, item). On Guest Success the
+// app keeps only `item`, the open guest conversation's ID; the app still checks access to open it.
 const WORKFLOW_STATE_ROUTES = new Set<string>([
   "workflows", "finance", "finance/invoices", "renovations", "renovations/invoice-review",
+  "property-management/guest-success",
 ])
 type GetChatModelState = () => Promise<GatekeeperChatModelState>
 type SetChatModel = (modelId: string | null) => Promise<GatekeeperChatModelState>

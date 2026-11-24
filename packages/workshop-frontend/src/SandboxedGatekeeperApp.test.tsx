@@ -176,6 +176,23 @@ describe("SandboxedGatekeeperApp navigation", () => {
     expect(router.state.location.pathname).toBe("/workflows");
   });
 
+  it("keeps the open guest conversation in the Guest Success URL and nothing else (LIS-577)", async () => {
+    const frame = { iframeHtml: "<!doctype html><title>Guest Success</title>", ui: new RpcStub(new EmptyUi()) } as unknown as GatekeeperUiFrame;
+    const rootRoute = createRootRoute({ component: () => <RailConnectionsProvider><SandboxedGatekeeperApp frame={frame} gatekeeperVendorId="lisbeyond" appRoute="property-management/guest-success" /></RailConnectionsProvider> });
+    const guestSuccess = createRoute({ getParentRoute: () => rootRoute, path: "/property-management/guest-success" });
+    const router = createRouter({ history: createMemoryHistory({ initialEntries: ["/property-management/guest-success?item=1002"] }), routeTree: rootRoute.addChildren([guestSuccess]) });
+    container = document.createElement("div"); document.body.append(container); root = createRoot(container);
+    await act(async () => root!.render(<RouterProvider router={router} />));
+    const iframe = container.querySelector("iframe")!;
+    const { port1, port2 } = new MessageChannel(); host = newMessagePortRpcSession<TestHost>(port1);
+    window.dispatchEvent(new MessageEvent("message", { data: { type: "handshake" }, origin: "null", source: iframe.contentWindow, ports: [port2] }));
+    await expect(host.getWorkflowRouteState()).resolves.toEqual({ item: "1002" });
+    await act(async () => { await host!.setWorkflowRouteState({ item: "1004", reply: "door code 4711" }); await vi.waitFor(() => expect(router.state.location.search).toEqual({ item: "1004" })); });
+    expect(router.state.location.pathname).toBe("/property-management/guest-success");
+    await act(async () => { await host!.setWorkflowRouteState({}); await vi.waitFor(() => expect(router.state.location.search).toEqual({})); });
+    expect(router.state.location.pathname).toBe("/property-management/guest-success");
+  });
+
   it.each(["guide", "feedback", "reviews"])("pushes property %s after saving list state without remounting on browser Back", async tab => {
     const frame = { iframeHtml: "<!doctype html><title>Properties</title>", ui: new RpcStub(new EmptyUi()) } as unknown as GatekeeperUiFrame;
     const rootRoute = createRootRoute({ component: () => <RailConnectionsProvider><SandboxedGatekeeperApp frame={frame} gatekeeperVendorId="lisbeyond" appRoute="properties" /></RailConnectionsProvider> });
