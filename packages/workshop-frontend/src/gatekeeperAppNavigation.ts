@@ -246,6 +246,8 @@ export function parseWorkflowRouteState(value: unknown): WorkflowRouteState {
     state.status = value.status as WorkflowRouteState["status"];
   }
   if (typeof value.item === "string" && /^[a-zA-Z0-9_-]{1,200}$/.test(value.item)) state.item = value.item;
+  // The router reads a numeric ID (a guest conversation, LIS-577) from the URL as a number.
+  if (typeof value.item === "number" && Number.isSafeInteger(value.item) && value.item > 0) state.item = String(value.item);
   return state;
 }
 
