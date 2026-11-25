@@ -41,6 +41,18 @@ describe("parseGatekeeperAppSidebar", () => {
     });
   });
 
+  it("keeps Upkeep's Cleaning calendar to Upkeep, before Onboarding (LIS-510)", () => {
+    expect(parseGatekeeperAppSidebar({ access: "active", top: [], sections: [
+      { id: "upkeep", items: ["onboarding", "cleaning-calendar"], open: true },
+      { id: "finance", items: ["cleaning-calendar"], open: false },
+    ] }).sections).toEqual([
+      { id: "finance", items: [], open: false },
+      { id: "upkeep", items: ["cleaning-calendar", "onboarding"], open: true },
+    ]);
+    expect(GATEKEEPER_APP_SIDEBAR.sections.upkeep.items["cleaning-calendar"]).toBe("upkeep/cleaning-calendar");
+    expect(GATEKEEPER_APP_ROUTES["upkeep/cleaning-calendar"]).toBe("/upkeep/cleaning-calendar");
+  });
+
   it("treats anything but a literal true as closed", () => {
     expect(parseGatekeeperAppSidebar({ access: "active", top: [], sections: [{ id: "upkeep", items: [], open: "yes" }] })
       .sections).toEqual([{ id: "upkeep", items: [], open: false }]);

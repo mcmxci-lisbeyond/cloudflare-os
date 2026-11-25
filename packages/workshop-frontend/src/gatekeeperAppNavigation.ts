@@ -29,6 +29,7 @@ export const GATEKEEPER_APP_ROUTES = {
   "property-management/revenue-management": "/property-management/revenue-management",
   upkeep: "/upkeep",
   "upkeep/onboarding": "/upkeep/onboarding",
+  "upkeep/cleaning-calendar": "/upkeep/cleaning-calendar",
 } as const;
 
 export type GatekeeperAppRoute = keyof typeof GATEKEEPER_APP_ROUTES;
@@ -50,7 +51,10 @@ export const GATEKEEPER_APP_SIDEBAR = {
       "guest-success": "property-management/guest-success",
       "revenue-management": "property-management/revenue-management",
     } },
-    upkeep: { landing: "upkeep", items: { onboarding: "upkeep/onboarding" } },
+    upkeep: { landing: "upkeep", items: {
+      "cleaning-calendar": "upkeep/cleaning-calendar",
+      onboarding: "upkeep/onboarding",
+    } },
     admin: { landing: "workflows", items: {
       "admin-workflows": "workflows",
       "admin-access": "settings",
