@@ -3,6 +3,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import {
   ArrowClockwise,
   Buildings,
+  CalendarBlank,
   CaretRight,
   ChartLineUp,
   ChartPieSlice,
@@ -61,6 +62,7 @@ const ITEMS: Record<GatekeeperAppSidebarItemId, { label: string; icon: ReactNode
   'owner-success': { label: 'Owner & Property Success', icon: icon(Handshake) },
   'guest-success': { label: 'Guest Success', icon: icon(Star) },
   'revenue-management': { label: 'Revenue Management', icon: icon(ChartLineUp) },
+  'cleaning-calendar': { label: 'Cleaning calendar', icon: icon(CalendarBlank) },
   onboarding: { label: 'Onboarding & QA', icon: icon(ClipboardText) },
   'admin-workflows': { label: 'Workflows', icon: icon(Lightning) },
   'admin-access': { label: 'Access', icon: icon(Key) },

@@ -15,7 +15,7 @@ const titles: Partial<Record<LisbeyondProductRoute, string>> = {
   'property-management/owner-success': 'Owner & Property Success',
   'property-management/guest-success': 'Guest Success',
   'property-management/revenue-management': 'Revenue Management',
-  upkeep: 'Upkeep', 'upkeep/onboarding': 'Onboarding & QA',
+  upkeep: 'Upkeep', 'upkeep/onboarding': 'Onboarding & QA', 'upkeep/cleaning-calendar': 'Cleaning calendar',
 }
 
 /** The authenticated shell owns this instance, so sibling product routes cannot remount it. */

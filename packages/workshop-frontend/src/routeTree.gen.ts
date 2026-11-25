@@ -46,6 +46,7 @@ import { Route as PropertyManagementOwnerSuccessRouteImport } from './routes/pro
 import { Route as PropertyManagementRevenueManagementRouteImport } from './routes/property-management_.revenue-management'
 import { Route as RenovationsInvoiceReviewRouteImport } from './routes/renovations_.invoice-review'
 import { Route as SalesNewLeadsRouteImport } from './routes/sales_.new-leads'
+import { Route as UpkeepCleaningCalendarRouteImport } from './routes/upkeep_.cleaning-calendar'
 import { Route as UpkeepOnboardingRouteImport } from './routes/upkeep_.onboarding'
 import { Route as WorkspaceIdRouteImport } from './routes/workspace.$id'
 
@@ -239,6 +240,11 @@ const SalesNewLeadsRoute = SalesNewLeadsRouteImport.update({
   path: '/sales/new-leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UpkeepCleaningCalendarRoute = UpkeepCleaningCalendarRouteImport.update({
+  id: '/upkeep_/cleaning-calendar',
+  path: '/upkeep/cleaning-calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpkeepOnboardingRoute = UpkeepOnboardingRouteImport.update({
   id: '/upkeep_/onboarding',
   path: '/upkeep/onboarding',
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/property-management/revenue-management': typeof PropertyManagementRevenueManagementRoute
   '/renovations/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep/cleaning-calendar': typeof UpkeepCleaningCalendarRoute
   '/upkeep/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/property-management/revenue-management': typeof PropertyManagementRevenueManagementRoute
   '/renovations/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep/cleaning-calendar': typeof UpkeepCleaningCalendarRoute
   '/upkeep/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
@@ -371,6 +379,7 @@ export interface FileRoutesById {
   '/property-management_/revenue-management': typeof PropertyManagementRevenueManagementRoute
   '/renovations_/invoice-review': typeof RenovationsInvoiceReviewRoute
   '/sales_/new-leads': typeof SalesNewLeadsRoute
+  '/upkeep_/cleaning-calendar': typeof UpkeepCleaningCalendarRoute
   '/upkeep_/onboarding': typeof UpkeepOnboardingRoute
   '/workspace/$id': typeof WorkspaceIdRoute
 }
@@ -414,6 +423,7 @@ export interface FileRouteTypes {
     | '/property-management/revenue-management'
     | '/renovations/invoice-review'
     | '/sales/new-leads'
+    | '/upkeep/cleaning-calendar'
     | '/upkeep/onboarding'
     | '/workspace/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/property-management/revenue-management'
     | '/renovations/invoice-review'
     | '/sales/new-leads'
+    | '/upkeep/cleaning-calendar'
     | '/upkeep/onboarding'
     | '/workspace/$id'
   id:
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/property-management_/revenue-management'
     | '/renovations_/invoice-review'
     | '/sales_/new-leads'
+    | '/upkeep_/cleaning-calendar'
     | '/upkeep_/onboarding'
     | '/workspace/$id'
   fileRoutesById: FileRoutesById
@@ -538,6 +550,7 @@ export interface RootRouteChildren {
   PropertyManagementRevenueManagementRoute: typeof PropertyManagementRevenueManagementRoute
   RenovationsInvoiceReviewRoute: typeof RenovationsInvoiceReviewRoute
   SalesNewLeadsRoute: typeof SalesNewLeadsRoute
+  UpkeepCleaningCalendarRoute: typeof UpkeepCleaningCalendarRoute
   UpkeepOnboardingRoute: typeof UpkeepOnboardingRoute
   WorkspaceIdRoute: typeof WorkspaceIdRoute
 }
@@ -803,6 +816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesNewLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/upkeep_/cleaning-calendar': {
+      id: '/upkeep_/cleaning-calendar'
+      path: '/upkeep/cleaning-calendar'
+      fullPath: '/upkeep/cleaning-calendar'
+      preLoaderRoute: typeof UpkeepCleaningCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upkeep_/onboarding': {
       id: '/upkeep_/onboarding'
       path: '/upkeep/onboarding'
@@ -859,6 +879,7 @@ const rootRouteChildren: RootRouteChildren = {
     PropertyManagementRevenueManagementRoute,
   RenovationsInvoiceReviewRoute: RenovationsInvoiceReviewRoute,
   SalesNewLeadsRoute: SalesNewLeadsRoute,
+  UpkeepCleaningCalendarRoute: UpkeepCleaningCalendarRoute,
   UpkeepOnboardingRoute: UpkeepOnboardingRoute,
   WorkspaceIdRoute: WorkspaceIdRoute,
 }

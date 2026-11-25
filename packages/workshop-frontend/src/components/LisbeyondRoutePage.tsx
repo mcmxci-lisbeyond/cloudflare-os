@@ -28,6 +28,7 @@ export type LisbeyondProductRoute =
   | 'property-management/revenue-management'
   | 'upkeep'
   | 'upkeep/onboarding'
+  | 'upkeep/cleaning-calendar'
 
 /**
  * Hosts the wrapper-owned Lisbeyond management app at stable employee-facing routes. Cloudflare OS
